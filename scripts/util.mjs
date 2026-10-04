@@ -74,6 +74,26 @@ export const alternateSide = order => (order % 2 === 0 ? "right" : "left");
 export const nextOrder = orders => orders.reduce((m, o) => Math.max(m, (o ?? 0) + 1), 0);
 export const nextSort = (kind, sorts) => Math.max(BAND[kind], ...sorts.map(s => s ?? 0)) + 1;
 
+/**
+ * Sort players into who confirmed a preload, who didn't answer, and who answered with load failures.
+ * @param {{id: string, name: string}[]} recipients  connected players the request was sent to
+ * @param {Map<string, {images?: number, sounds?: number, failed?: string[]}>} acks  replies by user id
+ */
+export function summarizeAcks(recipients, acks) {
+  const ok = [], missing = [], failed = [];
+  for (const user of recipients) {
+    const ack = acks.get(user.id);
+    if (!ack) missing.push(user.name);
+    else if (ack.failed?.length) failed.push(user.name);
+    else ok.push(user.name);
+  }
+  return { ok, missing, failed };
+}
+
+/** Players (not GMs) among `users` who are connected but not viewing `sceneId`. */
+export const playersNotViewing = (users, sceneId) =>
+  users.filter(u => u.active && !u.isGM && u.viewedScene !== sceneId);
+
 // ---- tile flag access ----------------------------------------------------
 export const metaOf = tile => tile?.flags?.[MODULE_ID];
 export const kindOf = tile => metaOf(tile)?.kind ?? "place";

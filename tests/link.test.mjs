@@ -13,12 +13,13 @@ globalThis.foundry = {
   applications: { api: { ApplicationV2: FakeApp, DialogV2: class {} }, apps: { FilePicker: { implementation: class {} } } },
   utils: { randomID: () => "abc123" }
 };
-const registered = { settings: [], keys: [] };
+const registered = { settings: [], keys: [], sockets: [] };
 globalThis.game = {
   user: { isGM: true },
   modules: new Map([["planar-theater", {}]]),
   settings: { register: (mod, key) => registered.settings.push(`${mod}.${key}`) },
   keybindings: { register: (mod, key) => registered.keys.push(`${mod}.${key}`) },
+  socket: { on: (event) => registered.sockets.push(event), emit() {} },
   i18n: { localize: k => k, format: k => k }
 };
 globalThis.canvas = { scene: null };
@@ -27,14 +28,15 @@ await import("../scripts/main.mjs");
 
 test("registers settings and keybinding on init", () => {
   hooks.once.init();
-  assert.deepEqual(registered.settings.sort(), ["planar-theater.fade", "planar-theater.soundFade", "planar-theater.titleHold"]);
+  assert.deepEqual(registered.settings.sort(), ["planar-theater.clearCastOnPlace", "planar-theater.fade", "planar-theater.soundFade", "planar-theater.titleHold"]);
   assert.deepEqual(registered.keys, ["planar-theater.open"]);
 });
 
 test("exposes an api on ready", () => {
   hooks.once.ready();
   const api = game.modules.get("planar-theater").api;
-  for (const fn of ["open", "createScene", "migrate"]) assert.equal(typeof api[fn], "function", fn);
+  assert.deepEqual(registered.sockets, ["module.planar-theater"], "socket listener registered");
+  for (const fn of ["open", "createScene", "paintBlack", "migrate"]) assert.equal(typeof api[fn], "function", fn);
 });
 
 test("adds a scene-control tool for the GM only", () => {

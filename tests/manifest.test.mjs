@@ -14,6 +14,10 @@ test("manifest has the fields Foundry requires", () => {
   assert.ok(manifest.compatibility.minimum && manifest.compatibility.verified);
 });
 
+test("socket is enabled (preload replies need it)", () => {
+  assert.equal(manifest.socket, true);
+});
+
 test("every referenced file exists", () => {
   for (const p of [...manifest.esmodules, ...manifest.styles, ...manifest.languages.map(l => l.path)]) {
     assert.ok(existsSync(file(p)), p);
@@ -43,7 +47,7 @@ test("placeholders match between languages", () => {
 
 test("every localization key used in the code exists", () => {
   const known = new Set(flatten(langs.en).map(k => k.replace(/^PLANAR_THEATER\./, "")));
-  const sources = ["panel", "stage", "sound", "scene", "migrate", "settings", "main"]
+  const sources = ["panel", "stage", "sound", "scene", "migrate", "settings", "main", "socket"]
     .map(n => readFileSync(file(`scripts/${n}.mjs`), "utf8")).join("\n");
   // t("Key"), warn("Key"), info("Key"), t(`Bar.${...}`) are checked by prefix
   const used = [...sources.matchAll(/\b(?:t|warn|info)\(\s*"([\w.]+)"/g)].map(m => m[1]);

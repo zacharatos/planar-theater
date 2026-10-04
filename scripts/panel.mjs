@@ -1,7 +1,7 @@
 import { MODULE_ID } from "./constants.mjs";
 import { t, warn } from "./i18n.mjs";
-import { setting } from "./settings.mjs";
-import { metaOf, kindOf, nameOf, escapeHTML as esc } from "./util.mjs";
+import { setting, setSetting } from "./settings.mjs";
+import { metaOf, kindOf, nameOf, escapeHTML as esc, playersNotViewing } from "./util.mjs";
 import { Stage } from "./stage.mjs";
 import { migrateScene, pendingLegacyTiles } from "./migrate.mjs";
 import { createTheaterScene } from "./scene.mjs";
@@ -45,6 +45,7 @@ export class TheaterPanel extends ApplicationV2 {
   #bound = false;
   #lastGrids = "";
   #timer = null;
+  #presenceTimer = null;
 
   get title() { return t("Title", { scene: canvas.scene?.name ?? "" }); }
 
@@ -56,12 +57,48 @@ export class TheaterPanel extends ApplicationV2 {
 
   _onRender() {
     this.#lastGrids = this.#gridsHTML();
+    this.#updatePresence();
+    clearInterval(this.#presenceTimer);
+    this.#presenceTimer = setInterval(() => this.#updatePresence(), 2000);
     if (this.#bound) return;
     this.#bound = true;
     this.element.addEventListener("click", ev => this.#onClick(ev));
+    this.element.addEventListener("change", ev => this.#onChange(ev));
   }
 
-  async _onClose() { this.#editingId = null; clearTimeout(this.#timer); }
+  async _onClose() {
+    this.#editingId = null;
+    clearTimeout(this.#timer);
+    clearInterval(this.#presenceTimer);
+  }
+
+  /** Remember the two checkboxes between sessions. */
+  #onChange(ev) {
+    const box = ev.target;
+    const key = { "th-fade": "fade", "th-clear": "clearCastOnPlace" }[box?.name];
+    if (key) setSetting(key, box.checked).catch(err => console.warn(`${MODULE_ID} |`, err));
+  }
+
+  /** "3/4 players on this scene" chip: shows at a glance whether Show to players worked. */
+  #presenceHTML() {
+    const scene = canvas.scene;
+    const players = game.users.filter(u => u.active && !u.isGM);
+    if (!players.length) return { cls: "none", icon: "fa-user-slash", text: t("Presence.None"), tip: "" };
+    const behind = playersNotViewing(game.users, scene?.id);
+    const here = players.length - behind.length;
+    if (!behind.length) return { cls: "all", icon: "fa-circle-check", text: t("Presence.All", { here, total: players.length }), tip: "" };
+    return { cls: "some", icon: "fa-triangle-exclamation", text: t("Presence.Some", { here, total: players.length }),
+      tip: t("Presence.Missing", { names: behind.map(u => u.name).join(", ") }) };
+  }
+
+  #updatePresence() {
+    const chip = this.element?.querySelector(".th-presence");
+    if (!chip) return;
+    const p = this.#presenceHTML();
+    chip.className = `th-presence ${p.cls}`;
+    chip.title = p.tip;
+    chip.innerHTML = `<i class="fa-solid ${p.icon}"></i> ${esc(p.text)}`;
+  }
 
   /** Re-draw the grids after tile changes, but only if something visible changed. */
   refreshSoon() {
@@ -114,30 +151,30 @@ export class TheaterPanel extends ApplicationV2 {
       <button type="button" data-act="import-legacy"><i class="fa-solid fa-file-import"></i> ${esc(t("Notice.Import"))}</button></div>`;
   }
 
-  #footHTML() {
-    return `<div class="th-foot">
-      <button type="button" data-act="create-scene"><i class="fa-solid fa-plus"></i> ${esc(t("Footer.CreateScene"))}</button>
-    </div>`;
-  }
-
   #panelHTML() {
     const b = key => esc(t(`Bar.${key}`));
+    const p = this.#presenceHTML();
     return `<div class="th-head">
       <div class="th-bar">
+        <button type="button" data-act="create-scene"><i class="fa-solid fa-plus"></i> ${b("NewScene")}</button>
         <button type="button" data-act="add-places"><i class="fa-solid fa-image"></i> ${b("AddPlaces")}</button>
         <button type="button" data-act="add-cast"><i class="fa-solid fa-user-plus"></i> ${b("AddCast")}</button>
-        <button type="button" data-act="black"><i class="fa-solid fa-square"></i> ${b("Black")}</button>
-        <button type="button" data-act="silence"><i class="fa-solid fa-volume-xmark"></i> ${b("Silence")}</button>
         <button type="button" data-act="refit"><i class="fa-solid fa-expand"></i> ${b("Refit")}</button>
         <button type="button" data-act="preload"><i class="fa-solid fa-download"></i> ${b("Preload")}</button>
         <button type="button" data-act="activate"><i class="fa-solid fa-bullhorn"></i> ${b("Activate")}</button>
-        <label><input type="checkbox" name="th-fade" ${setting("fade") ? "checked" : ""}> ${b("Fade")}</label>
+        <span class="th-presence ${p.cls}" title="${esc(p.tip)}"><i class="fa-solid ${p.icon}"></i> ${esc(p.text)}</span>
+      </div>
+      <div class="th-bar th-live">
+        <button type="button" data-act="black"><i class="fa-solid fa-square"></i> ${b("Black")}</button>
+        <button type="button" data-act="clear-cast"><i class="fa-solid fa-user-slash"></i> ${b("ClearCast")}</button>
+        <button type="button" data-act="silence"><i class="fa-solid fa-volume-xmark"></i> ${b("Silence")}</button>
+        <label><input type="checkbox" name="th-clear" ${setting("clearCastOnPlace") ? "checked" : ""}> ${b("ClearCastOnPlace")}</label>
+        <label class="th-fade"><input type="checkbox" name="th-fade" ${setting("fade") ? "checked" : ""}> ${b("Fade")}</label>
       </div>
       <div class="th-editor"></div>
     </div>
     ${this.#noticeHTML()}
-    <div class="th-grids">${this.#gridsHTML()}</div>
-    ${this.#footHTML()}`;
+    <div class="th-grids">${this.#gridsHTML()}</div>`;
   }
 
   #editorHTML(tile) {
@@ -205,13 +242,14 @@ export class TheaterPanel extends ApplicationV2 {
         const tile = scene.tiles.get(el.dataset.id);
         if (!tile) return;
         if (kindOf(tile) === "npc") await stage.toggleNpc(tile.id, fade);
-        else await stage.showPlace(tile.id, fade);
+        else await stage.showPlace(tile.id, fade, { clearCast: this.element.querySelector("input[name=th-clear]")?.checked });
         return;
       }
       switch (el.dataset.act) {
         case "add-places": await stage.addPlaces(); break;
         case "add-cast": await stage.addCast(); break;
         case "black": await stage.black(fade); break;
+        case "clear-cast": await stage.clearCast(fade); break;
         case "silence": await stage.silence(); break;
         case "refit": await stage.refitAll(); break;
         case "preload": await stage.preload(); break;

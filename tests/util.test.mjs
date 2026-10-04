@@ -112,3 +112,22 @@ test("legacy migration only picks up un-migrated macro tiles", () => {
   assert.deepEqual(copy, legacy);
   assert.notEqual(copy.home, legacy.home, "deep copy");
 });
+
+import { summarizeAcks, playersNotViewing } from "../scripts/util.mjs";
+
+test("summarizeAcks separates confirmed, silent and failed players", () => {
+  const recipients = [{ id: "a", name: "Ann" }, { id: "b", name: "Bo" }, { id: "c", name: "Cy" }];
+  const acks = new Map([["a", { failed: [] }], ["c", { failed: ["x.webp"] }]]);
+  assert.deepEqual(summarizeAcks(recipients, acks), { ok: ["Ann"], missing: ["Bo"], failed: ["Cy"] });
+  assert.deepEqual(summarizeAcks([], new Map()), { ok: [], missing: [], failed: [] });
+});
+
+test("playersNotViewing ignores GMs and offline users", () => {
+  const users = [
+    { name: "GM", active: true, isGM: true, viewedScene: "other" },
+    { name: "Here", active: true, isGM: false, viewedScene: "s1" },
+    { name: "Elsewhere", active: true, isGM: false, viewedScene: "s2" },
+    { name: "Offline", active: false, isGM: false, viewedScene: null }
+  ];
+  assert.deepEqual(playersNotViewing(users, "s1").map(u => u.name), ["Elsewhere"]);
+});

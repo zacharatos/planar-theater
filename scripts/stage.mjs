@@ -1,17 +1,18 @@
 // The Theater "stage": everything that changes tiles on the current scene.
 // The panel (panel.mjs) only calls these methods and renders the result.
 import {
-  MODULE_ID, BAND, FADE_STEPS, FADE_MS, TITLE_FADE_IN_MS, TITLE_FADE_OUT_MS
+  MODULE_ID, BAND, FADE_STEPS, FADE_MS, TITLE_FADE_IN_MS, TITLE_FADE_OUT_MS, ACTIVATE_WAIT_MS
 } from "./constants.mjs";
 import { t, warn, info } from "./i18n.mjs";
 import { setting } from "./settings.mjs";
 import {
   metaOf, kindOf, nameOf, labelFromPath, containFit, centerIn, npcPosition, npcSlide,
-  titleBox, nextOrder, nextSort, alternateSide, escapeHTML
+  titleBox, nextOrder, nextSort, alternateSide, escapeHTML, playersNotViewing
 } from "./util.mjs";
 import { pickFolder, listImages, upload, loadImg } from "./files.mjs";
 import { renderCard, renderTitle } from "./render.mjs";
 import * as sound from "./sound.mjs";
+import { broadcastPreload } from "./socket.mjs";
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const flag = key => `flags.${MODULE_ID}.${key}`;
@@ -161,9 +162,10 @@ export class Stage {
     await this.hide([card]);
   }
 
-  async showPlace(id, fade) {
+  async showPlace(id, fade, { clearCast = false } = {}) {
     const target = this.scene.tiles.get(id);
     if (!target) return;
+    const castOut = clearCast ? this.clearCast(fade) : null;
     const others = this.tilesOf("place").filter(tile => tile.id !== id && isOn(tile));
     const sort = this.#nextSort("place");
     if (fade) {
@@ -173,8 +175,26 @@ export class Stage {
       await target.update({ hidden: false, alpha: 1, sort });
     }
     await this.hide(others);
+    await castOut;
     await sound.switchTo(this.scene, metaOf(target).sound);
     this.#runTitle(target).catch(err => console.error(`${MODULE_ID} | title`, err));
+  }
+
+  /** Fade NPC cards out while sliding them off their own side. */
+  #slideOut(docs) {
+    return this.steps(docs.map(o => {
+      const m = metaOf(o), h = m.home ?? { x: o.x };
+      return { id: o.id, a0: o.alpha, a1: 0, x0: h.x, x1: h.x + npcSlide(this.rect, m.side ?? "right") };
+    }));
+  }
+
+  /** Send every NPC card on screen away. Returns how many there were. */
+  async clearCast(fade) {
+    const on = this.tilesOf("npc").filter(isOn);
+    if (!on.length) return 0;
+    if (fade) await this.#slideOut(on);
+    await this.hide(on);
+    return on.length;
   }
 
   async toggleNpc(id, fade) {
@@ -184,17 +204,13 @@ export class Stage {
     const side = m.side ?? "right";
     const home = m.home ?? { x: tile.x, y: tile.y };
     const off = npcSlide(this.rect, side);
-    const slideOut = docs => this.steps(docs.map(o => {
-      const h = metaOf(o).home ?? { x: o.x };
-      return { id: o.id, a0: o.alpha, a1: 0, x0: h.x, x1: h.x + off };
-    }));
 
     if (isOn(tile)) {
-      if (fade) await slideOut([tile]);
+      if (fade) await this.#slideOut([tile]);
       return this.hide([tile]);
     }
     const rivals = this.tilesOf("npc").filter(o => o.id !== id && isOn(o) && (metaOf(o).side ?? "right") === side);
-    if (rivals.length) { if (fade) await slideOut(rivals); await this.hide(rivals); }
+    if (rivals.length) { if (fade) await this.#slideOut(rivals); await this.hide(rivals); }
     const sort = this.#nextSort("npc");
     if (fade) {
       await tile.update({ hidden: false, alpha: 0, x: home.x + off, y: home.y, sort });
@@ -229,13 +245,49 @@ export class Stage {
   }
 
   silence() { return sound.silence(this.scene); }
-  activate() { return this.scene.activate(); }
 
+  /** Every file this scene can show or play, so nothing loads late at the table. */
+  async #assets() {
+    const images = new Set(), soundUuids = new Set();
+    for (const tile of this.scene.tiles) {
+      const m = metaOf(tile);
+      if (!m) continue;
+      if (tile.texture.src) images.add(tile.texture.src);
+      for (const alt of [m.cardShown, m.cardHidden]) if (alt) images.add(alt); // the other version of a card
+      if (m.sound) soundUuids.add(m.sound);
+    }
+    const sounds = new Set();
+    for (const uuid of soundUuids) {
+      const snd = await fromUuid(uuid);
+      if (snd?.path) sounds.add(snd.path);
+    }
+    return { images: [...images], sounds: [...sounds] };
+  }
+
+  /** Preload on every connected client and report who confirmed. */
   async preload() {
+    const assets = await this.#assets();
+    info("Notify.PreloadStart", { images: assets.images.length, sounds: assets.sounds.length });
+    const { local, recipients, ok, missing, failed } = await broadcastPreload(assets);
+    if (local.failed.length) warn("Notify.PreloadLocalFailed", { count: local.failed.length });
+    if (!recipients.length) return info("Notify.PreloadNobody");
+    if (ok.length) info("Notify.PreloadDone", { names: ok.join(", ") });
+    if (failed.length) warn("Notify.PreloadFailed", { names: failed.join(", ") });
+    if (missing.length) warn("Notify.PreloadMissing", { names: missing.join(", ") });
+  }
+
+  /** Make this scene the active one, then say how many players actually arrived. */
+  async activate() {
     const scene = this.scene;
-    await game.scenes.preload(scene.id, true);
-    const count = await sound.preloadLinked(this.tilesOf("place").map(tile => metaOf(tile).sound));
-    info(count ? "Notify.PreloadingSounds" : "Notify.Preloading", { count });
+    if (!scene.active) await scene.activate();
+    const started = Date.now();
+    while (playersNotViewing(game.users, scene.id).length && Date.now() - started < ACTIVATE_WAIT_MS) await sleep(400);
+    const players = game.users.filter(u => u.active && !u.isGM);
+    const behind = playersNotViewing(game.users, scene.id);
+    const name = scene.name;
+    if (!players.length) return info("Notify.ActivatedNobody", { name });
+    if (!behind.length) return info("Notify.ActivatedAll", { name, count: players.length });
+    warn("Notify.ActivatedSome", { name, here: players.length - behind.length, total: players.length, names: behind.map(u => u.name).join(", ") });
   }
 
   // ---------- adding -----------------------------------------------------------

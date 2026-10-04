@@ -14,7 +14,10 @@
       "Refit": "Re-fit",
       "Preload": "Preload",
       "Activate": "Show to players",
-      "Fade": "Fade"
+      "Fade": "Fade",
+      "NewScene": "New scene",
+      "ClearCast": "Clear cast",
+      "ClearCastOnPlace": "Clear cast on new place"
     },
     "Editor": {
       "Settings": "Settings",
@@ -42,9 +45,6 @@
       "Title": "Remove from Theater",
       "Body": "Remove {name} from this scene? The image file itself stays."
     },
-    "Footer": {
-      "CreateScene": "New Theater scene"
-    },
     "Notice": {
       "Legacy": "This scene has {count} item(s) made by the old macro. Import them to use them here.",
       "Import": "Import"
@@ -63,12 +63,20 @@
       "AddedCast": "Added {count} NPC(s).",
       "Refitted": "Theater re-fitted to the scene.",
       "SoundMissing": "The linked sound no longer exists.",
-      "Preloading": "Preloading this scene's images for everyone.",
-      "PreloadingSounds": "Preloading this scene's images and {count} sound(s) for everyone.",
       "SceneCreated": "Created the scene “{name}”.",
       "Imported": "Imported {count} item(s) from the old macro.",
       "NothingToImport": "Nothing to import on this scene.",
-      "Error": "Theater: {message}"
+      "Error": "Theater: {message}",
+      "PreloadStart": "Preloading {images} image(s) and {sounds} sound(s) on every connected client…",
+      "PreloadDone": "Preloaded on: {names}.",
+      "PreloadFailed": "Some files failed to load for: {names}. Check their browser console.",
+      "PreloadMissing": "No reply from: {names}. They may still be loading, or may not have this module enabled.",
+      "PreloadNobody": "Preloaded here. No players are connected.",
+      "PreloadLocalFailed": "{count} file(s) failed to load on your own client.",
+      "ActivatedAll": "“{name}” is active and all {count} connected player(s) are viewing it.",
+      "ActivatedSome": "“{name}” is active, but only {here} of {total} players are viewing it yet. Not there: {names}.",
+      "ActivatedNobody": "“{name}” is active. No players are connected.",
+      "BlackFailed": "Could not set the scene background to black. Set the background colour in Scene Configuration."
     },
     "Settings": {
       "TitleHold": {
@@ -82,10 +90,20 @@
       "Fade": {
         "Name": "Fade by default",
         "Hint": "Starting state of the Fade checkbox in the Theater panel."
+      },
+      "ClearCast": {
+        "Name": "Clear cast when changing place",
+        "Hint": "Starting state of the “Clear cast on new place” checkbox in the Theater panel."
       }
     },
     "Keybinding": {
       "Open": "Open the Theater panel"
+    },
+    "Presence": {
+      "None": "No players connected",
+      "All": "{here}/{total} players on this scene",
+      "Some": "{here}/{total} players on this scene",
+      "Missing": "Not on this scene yet: {names}"
     }
   }
 }

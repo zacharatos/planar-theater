@@ -31,5 +31,11 @@
 .planar-theater .th-ed-btns{display:flex;gap:6px;margin-top:8px}
 .planar-theater .th-ed-btns button{flex:0 0 auto;width:auto}
 .planar-theater .th-ed-btns button[data-ed=delete]{margin-left:auto}
-.planar-theater .th-foot{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
-.planar-theater .th-foot button{flex:0 0 auto;width:auto;font-size:12px;opacity:.85}
+.planar-theater .th-bar.th-live{padding-top:6px;border-top:1px solid rgba(255,255,255,.08)}
+.planar-theater .th-bar .th-fade{margin-left:0}
+.planar-theater .th-bar label{margin-left:0}
+.planar-theater .th-bar.th-live label:first-of-type{margin-left:auto}
+.planar-theater .th-presence{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:12px;font-size:12px;white-space:nowrap;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.35)}
+.planar-theater .th-presence.all{color:#8fd18f;border-color:rgba(143,209,143,.5)}
+.planar-theater .th-presence.some{color:#f0b34a;border-color:rgba(240,179,74,.6);background:rgba(240,179,74,.1)}
+.planar-theater .th-presence.none{opacity:.6}

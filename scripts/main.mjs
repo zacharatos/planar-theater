@@ -1,8 +1,9 @@
 import { MODULE_ID } from "./constants.mjs";
 import { registerSettings } from "./settings.mjs";
 import { TheaterPanel } from "./panel.mjs";
-import { createTheaterScene } from "./scene.mjs";
+import { createTheaterScene, paintBlack } from "./scene.mjs";
 import { migrateScene } from "./migrate.mjs";
+import { registerSocket } from "./socket.mjs";
 
 Hooks.once("init", () => {
   registerSettings();
@@ -15,8 +16,9 @@ Hooks.once("init", () => {
 });
 
 Hooks.once("ready", () => {
+  registerSocket();
   const module = game.modules.get(MODULE_ID);
-  if (module) module.api = { open: () => TheaterPanel.open(), createScene: createTheaterScene, migrate: migrateScene };
+  if (module) module.api = { open: () => TheaterPanel.open(), createScene: createTheaterScene, paintBlack, migrate: migrateScene };
 });
 
 // Scene controls: a button in the Tokens toolbar (v13/v14 shape).

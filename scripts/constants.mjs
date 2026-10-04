@@ -27,5 +27,12 @@ export const NPC = { margin: 0.035, slide: 0.03, lift: 0.05 };
 /** Title cards occupy the bottom fraction of the scene. */
 export const TITLE_HEIGHT = 0.2;
 
+/** How long the GM waits for players: to confirm a preload, and to arrive on an activated scene. */
+export const PRELOAD_TIMEOUT_MS = 20_000;
+export const ACTIVATE_WAIT_MS = 6_000;
+
+/** Canvas colour of a Theater scene. */
+export const BLACK = "#000000";
+
 /** Folder (inside the world) where generated cards and titles are saved. */
 export const GENERATED_DIR = "theater-generated";

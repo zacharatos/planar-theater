@@ -18,6 +18,11 @@ export function registerSettings() {
     hint: "PLANAR_THEATER.Settings.Fade.Hint",
     scope: "client", config: true, type: Boolean, default: true
   });
+  game.settings.register(MODULE_ID, "clearCastOnPlace", {
+    name: "PLANAR_THEATER.Settings.ClearCast.Name",
+    hint: "PLANAR_THEATER.Settings.ClearCast.Hint",
+    scope: "client", config: true, type: Boolean, default: false
+  });
 }
 
 export const setting = key => game.settings.get(MODULE_ID, key);

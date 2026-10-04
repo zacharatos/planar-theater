@@ -11,7 +11,8 @@ scripts/
   render.mjs           canvas drawing of NPC cards and title cards -> Blob
   files.mjs            folder picker, folder listing, upload to the world
   sound.mjs            playlist sound switching, loop/fade setup, preload
-  scene.mjs            "New Theater scene" helper
+  scene.mjs            "New scene" helper (black via Level on v14)
+  socket.mjs           GM <-> player preload requests and acknowledgements
   migrate.mjs          import from the original macro
   settings.mjs  i18n.mjs  constants.mjs
   util.mjs             pure helpers (no Foundry globals), all unit-tested
@@ -47,7 +48,7 @@ Reload the browser tab (F5) after each change; the module has no hot reload.
 
 ### Manual test checklist
 
-- New Theater scene creates a black 1920×1080 gridless scene and opens it.
+- New scene creates a **black** (not grey) 1920×1080 gridless scene and opens it. The button is in the pinned toolbar, not at the bottom.
 - Add places with PNG, JPG and WEBP of different sizes: all fill the scene without cropping or offset.
 - Click places repeatedly with Fade on and off: no flash of the previous image.
 - Title card appears on place change and fades out; clicking another place cancels it.
@@ -56,7 +57,9 @@ Reload the browser tab (F5) after each change; the module has no hot reload.
 - Veil an NPC: players see `?`; reveal restores the name instantly; rename regenerates the card.
 - Close the folder picker without choosing: the panel stays usable.
 - Remove a place that has a title card: both tiles disappear.
-- Preload with a player connected: the player's console shows the images and sounds loading.
+- Preload with a player connected (a second browser logged in as a player): a message says "Preloaded on: <name>". With nobody connected it says so. Close the player's tab mid-way: that player is reported as not answering.
+- Show to players with a player on another scene: the message names that player; once they switch, the presence chip turns green. Check that `viewedScene` is kept up to date.
+- Clear cast button and the "Clear cast on new place" checkbox: NPCs slide out; the checkbox survives a reload.
 - Log in as a player: no Theater button, no panel.
 - Import from the macro: run on a scene made by the old macro; run twice (second does nothing).
 
@@ -67,6 +70,8 @@ Reload the browser tab (F5) after each change; the module has no hot reload.
 - **Data shape**: tile data lives in `flags.planar-theater` (`kind`: place / npc / title). If you change its shape, bump a schema version and write a migration in `migrate.mjs`; people will have scenes built with older versions.
 - **Z-order**: `BAND` in `constants.mjs` keeps places below cast below titles via `sort`.
 - **Tile anchor**: in v14 a tile's `x/y` can be its centre. `Stage#place` measures the real bounds and corrects; do not assume `x/y` is the top-left.
+- **Scene background (v14)**: scenes have no `backgroundColor`; it is `level.background.color` on the scene's Level (`scene.mjs#paintBlack`).
+- **Preload (v14)**: `game.scenes.preload(id, {broadcast: true})` takes an options object, and we preload through our own socket so we can confirm per player (`socket.mjs`).
 - **Hidden tiles** are shown to the GM at half alpha, so "off" is `hidden: true` and `alpha: 0`.
 
 ## Versions

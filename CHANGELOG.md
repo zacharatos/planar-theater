@@ -3,11 +3,21 @@
 All notable changes to this module. Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 The release workflow uses the section matching the tag as the GitHub release notes, so keep the `## [x.y.z]` headings exact.
 
-## [0.1.1]
+## [0.2.0]
 
 ### Fixed
+- **New Theater scene is now black.** Foundry v14 has no scene `backgroundColor`; the colour lives on the scene's Level, so the helper now sets `level.background.color` (and still sets `backgroundColor` on older versions). The API exposes `paintBlack(scene)` to repair an existing grey scene.
+- **Preload really reaches every player.** In v14 `Scenes#preload` takes an options object (`{broadcast: true}`); the old call passed `true`, so it only preloaded on the GM's client. Preload now goes over the module socket: each player's browser loads the scene's images (including the alternate NPC cards) and linked sounds and replies, and the GM sees who confirmed, who failed and who did not answer.
 - Empty-state messages in the panel no longer wrap into a narrow column.
 - The offer to import tiles from the old macro is now a banner at the top of the panel instead of a small button at the bottom.
+
+### Added
+- **Clear cast** button, and a **Clear cast on new place** checkbox (remembered per browser) so NPCs from the previous scene slide out when you change place.
+- **Show to players feedback**: after activating, a message says how many players are viewing the scene and names anyone who is not. A presence chip in the toolbar shows the same live.
+- Module socket (`"socket": true`).
+
+### Changed
+- **New Theater scene** moved from the scrolling footer into the pinned toolbar. The footer is gone. The toolbar now has two rows.
 
 ## [0.1.0]
 
