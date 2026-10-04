@@ -1,0 +1,27 @@
+{
+  "id": "planar-theater",
+  "title": "Planar Theater",
+  "description": "A GM tool for theater-of-the-mind scenes: a black scene where you switch backdrops, NPC portrait cards, title cards and ambient sound live, with everything preloaded.",
+  "version": "0.1.0",
+  "authors": [
+    { "name": "YOUR NAME" }
+  ],
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14"
+  },
+  "esmodules": ["scripts/main.mjs"],
+  "styles": ["styles/theater.css"],
+  "languages": [
+    { "lang": "en", "name": "English", "path": "lang/en.json" },
+    { "lang": "el", "name": "Ελληνικά", "path": "lang/el.json" }
+  ],
+  "url": "https://github.com/YOUR_GITHUB_USER/planar-theater",
+  "manifest": "https://github.com/YOUR_GITHUB_USER/planar-theater/releases/latest/download/module.json",
+  "download": "https://github.com/YOUR_GITHUB_USER/planar-theater/releases/download/v0.1.0/module.zip",
+  "bugs": "https://github.com/YOUR_GITHUB_USER/planar-theater/issues",
+  "readme": "https://github.com/YOUR_GITHUB_USER/planar-theater#readme",
+  "changelog": "https://github.com/YOUR_GITHUB_USER/planar-theater/blob/main/CHANGELOG.md",
+  "license": "https://github.com/YOUR_GITHUB_USER/planar-theater/blob/main/LICENSE",
+  "flags": {}
+}

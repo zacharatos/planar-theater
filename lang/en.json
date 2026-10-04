@@ -1,0 +1,88 @@
+{
+  "PLANAR_THEATER": {
+    "Title": "Theater — {scene}",
+    "ToolTitle": "Theater",
+    "Places": "Places",
+    "Cast": "Cast",
+    "NoPlaces": "No places yet. Click “Add places…”.",
+    "NoCast": "No NPCs yet. Click “Add cast…”.",
+    "Bar": {
+      "AddPlaces": "Add places…",
+      "AddCast": "Add cast…",
+      "Black": "Black",
+      "Silence": "Silence",
+      "Refit": "Re-fit",
+      "Preload": "Preload",
+      "Activate": "Show to players",
+      "Fade": "Fade"
+    },
+    "Editor": {
+      "Settings": "Settings",
+      "NameOnCard": "Name on card",
+      "PlayersSee": "Players see",
+      "SeeName": "The name",
+      "SeeVeiled": "A veiled name ( ? )",
+      "Side": "Side",
+      "Left": "Left",
+      "Right": "Right",
+      "TitleCard": "Title card",
+      "TitlePlaceholder": "The Mortuary | Sigil, City of Doors",
+      "TitleHint": "Use “|” for a smaller second line. Leave empty for no title.",
+      "Sound": "Sound",
+      "NoSound": "— no sound —",
+      "Save": "Save",
+      "Cancel": "Cancel",
+      "Remove": "Remove"
+    },
+    "Reveal": {
+      "Hidden": "Name hidden from players. Click to reveal it.",
+      "Shown": "Name shown to players. Click to hide it."
+    },
+    "Remove": {
+      "Title": "Remove from Theater",
+      "Body": "Remove {name} from this scene? The image file itself stays."
+    },
+    "Footer": {
+      "CreateScene": "New Theater scene",
+      "Import": "Import {count} item(s) from the old macro"
+    },
+    "Scene": {
+      "DefaultName": "Theater"
+    },
+    "Notify": {
+      "OnlyGM": "Only the GM can use the Theater.",
+      "NoScene": "Open a scene first.",
+      "NoImages": "No images found in that folder.",
+      "PlacesLoaded": "Every image in that folder is already loaded.",
+      "CastLoaded": "Every portrait in that folder is already loaded.",
+      "AddedPlaces": "Added {count} place(s).",
+      "Framing": "Framing {count} portrait(s)…",
+      "AddedCast": "Added {count} NPC(s).",
+      "Refitted": "Theater re-fitted to the scene.",
+      "SoundMissing": "The linked sound no longer exists.",
+      "Preloading": "Preloading this scene's images for everyone.",
+      "PreloadingSounds": "Preloading this scene's images and {count} sound(s) for everyone.",
+      "SceneCreated": "Created the scene “{name}”.",
+      "Imported": "Imported {count} item(s) from the old macro.",
+      "NothingToImport": "Nothing to import on this scene.",
+      "Error": "Theater: {message}"
+    },
+    "Settings": {
+      "TitleHold": {
+        "Name": "Title card duration (seconds)",
+        "Hint": "How long a place's title card stays on screen before it fades out."
+      },
+      "SoundFade": {
+        "Name": "Default sound fade (seconds)",
+        "Hint": "Fade applied to a linked sound the first time it is used, if the sound has no fade of its own."
+      },
+      "Fade": {
+        "Name": "Fade by default",
+        "Hint": "Starting state of the Fade checkbox in the Theater panel."
+      }
+    },
+    "Keybinding": {
+      "Open": "Open the Theater panel"
+    }
+  }
+}
