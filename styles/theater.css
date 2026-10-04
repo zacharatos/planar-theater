@@ -18,7 +18,9 @@
 .planar-theater .th-edit:hover{opacity:1;color:#e8a33d}
 .planar-theater .th-reveal{right:auto;left:6px}
 .planar-theater .th-reveal.veiled{opacity:1;color:#e8a33d;background:rgba(60,30,0,.85)}
-.planar-theater .th-empty{opacity:.7;padding:.5em 1em;margin:0}
+.planar-theater .th-empty{grid-column:1/-1;opacity:.7;padding:.5em 1em;margin:0}
+.planar-theater .th-notice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0;padding:8px 10px;border:1px solid rgba(232,163,61,.6);border-radius:6px;background:rgba(232,163,61,.12)}
+.planar-theater .th-notice button{flex:0 0 auto;width:auto;margin-left:auto}
 .planar-theater .th-editor:empty{display:none}
 .planar-theater .th-editor{margin-top:6px;padding:8px 10px;border:1px solid rgba(232,163,61,.45);border-radius:6px;background:#15131d}
 .planar-theater .th-ed-head{font-weight:600;margin-bottom:6px}

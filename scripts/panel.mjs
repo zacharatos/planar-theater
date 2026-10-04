@@ -55,7 +55,7 @@ export class TheaterPanel extends ApplicationV2 {
   _replaceHTML(result, content) { content.innerHTML = result; }
 
   _onRender() {
-    this.#lastGrids = this.element.querySelector(".th-grids")?.innerHTML ?? "";
+    this.#lastGrids = this.#gridsHTML();
     if (this.#bound) return;
     this.#bound = true;
     this.element.addEventListener("click", ev => this.#onClick(ev));
@@ -107,11 +107,16 @@ export class TheaterPanel extends ApplicationV2 {
       <div class="th-grid cast">${cast.length ? cast.map(x => this.#itemHTML(x)).join("") : `<p class="th-empty">${esc(t("NoCast"))}</p>`}</div>`;
   }
 
-  #footHTML() {
+  #noticeHTML() {
     const legacy = pendingLegacyTiles(canvas.scene).length;
+    if (!legacy) return "";
+    return `<div class="th-notice"><span>${esc(t("Notice.Legacy", { count: legacy }))}</span>
+      <button type="button" data-act="import-legacy"><i class="fa-solid fa-file-import"></i> ${esc(t("Notice.Import"))}</button></div>`;
+  }
+
+  #footHTML() {
     return `<div class="th-foot">
       <button type="button" data-act="create-scene"><i class="fa-solid fa-plus"></i> ${esc(t("Footer.CreateScene"))}</button>
-      ${legacy ? `<button type="button" data-act="import-legacy"><i class="fa-solid fa-file-import"></i> ${esc(t("Footer.Import", { count: legacy }))}</button>` : ""}
     </div>`;
   }
 
@@ -130,6 +135,7 @@ export class TheaterPanel extends ApplicationV2 {
       </div>
       <div class="th-editor"></div>
     </div>
+    ${this.#noticeHTML()}
     <div class="th-grids">${this.#gridsHTML()}</div>
     ${this.#footHTML()}`;
   }

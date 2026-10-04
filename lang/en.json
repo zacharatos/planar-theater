@@ -43,8 +43,11 @@
       "Body": "Remove {name} from this scene? The image file itself stays."
     },
     "Footer": {
-      "CreateScene": "New Theater scene",
-      "Import": "Import {count} item(s) from the old macro"
+      "CreateScene": "New Theater scene"
+    },
+    "Notice": {
+      "Legacy": "This scene has {count} item(s) made by the old macro. Import them to use them here.",
+      "Import": "Import"
     },
     "Scene": {
       "DefaultName": "Theater"

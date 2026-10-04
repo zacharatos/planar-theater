@@ -3,6 +3,12 @@
 All notable changes to this module. Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 The release workflow uses the section matching the tag as the GitHub release notes, so keep the `## [x.y.z]` headings exact.
 
+## [0.1.1]
+
+### Fixed
+- Empty-state messages in the panel no longer wrap into a narrow column.
+- The offer to import tiles from the old macro is now a banner at the top of the panel instead of a small button at the bottom.
+
 ## [0.1.0]
 
 First module release. Everything below existed as a GM macro ("Ambient Theater" v1–v3; kept in `legacy/`) and was ported to a module.
