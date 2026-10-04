@@ -18,6 +18,17 @@ const soundOptions = selected => {
   return out.join("");
 };
 
+/** A selector that finds the clicked control again after the panel re-draws it. */
+const controlSelector = el => {
+  for (const key of ["act", "id", "ed", "reveal", "edit"]) {
+    if (el.dataset[key]) return `[data-${key}="${el.dataset[key]}"]`;
+  }
+  return null;
+};
+
+/** Quick actions finish before this, so they never flash the busy state. */
+const BUSY_DELAY_MS = 150;
+
 export class TheaterPanel extends ApplicationV2 {
   static DEFAULT_OPTIONS = {
     id: "planar-theater-panel",
@@ -42,7 +53,11 @@ export class TheaterPanel extends ApplicationV2 {
   stage = new Stage();
   #editingId = null;
   #busy = false;
-  #bound = false;
+  #busyTimer = null;
+  /** Selector of the control whose action is running, so it stays highlighted across re-draws. */
+  #working = null;
+  /** The element the click/change listeners are on. Foundry builds a new one each time the window reopens. */
+  #boundTo = null;
   #lastGrids = "";
   #timer = null;
   #presenceTimer = null;
@@ -60,8 +75,9 @@ export class TheaterPanel extends ApplicationV2 {
     this.#updatePresence();
     clearInterval(this.#presenceTimer);
     this.#presenceTimer = setInterval(() => this.#updatePresence(), 2000);
-    if (this.#bound) return;
-    this.#bound = true;
+    this.#showBusy(); // a reopened window must still show an action that is running
+    if (this.#boundTo === this.element) return;
+    this.#boundTo = this.element;
     this.element.addEventListener("click", ev => this.#onClick(ev));
     this.element.addEventListener("change", ev => this.#onChange(ev));
   }
@@ -69,6 +85,7 @@ export class TheaterPanel extends ApplicationV2 {
   async _onClose() {
     this.#editingId = null;
     clearTimeout(this.#timer);
+    clearTimeout(this.#busyTimer);
     clearInterval(this.#presenceTimer);
   }
 
@@ -100,6 +117,27 @@ export class TheaterPanel extends ApplicationV2 {
     chip.innerHTML = `<i class="fa-solid ${p.icon}"></i> ${esc(p.text)}`;
   }
 
+  /** Mirror #busy on the window: "Working…" chip, progress cursor, dimmed controls, the clicked one highlighted. */
+  #showBusy() {
+    const root = this.element;
+    if (!root) return;
+    const on = this.#busy;
+    root.classList.toggle("th-busy", on);
+    root.setAttribute("aria-busy", String(on));
+    for (const x of root.querySelectorAll(".th-working")) x.classList.remove("th-working");
+    if (on && this.#working) root.querySelector(this.#working)?.classList.add("th-working");
+  }
+
+  /** A click while busy: shake the "Working…" chip so it's clear the click was seen, not lost. */
+  #nudge() {
+    this.#showBusy();
+    const chip = this.element?.querySelector(".th-status");
+    if (!chip) return;
+    chip.classList.remove("th-nudge");
+    void chip.offsetWidth; // restart the animation
+    chip.classList.add("th-nudge");
+  }
+
   /** Re-draw the grids after tile changes, but only if something visible changed. */
   refreshSoon() {
     if (!this.rendered) return;
@@ -115,6 +153,7 @@ export class TheaterPanel extends ApplicationV2 {
     const editor = this.element.querySelector(".th-editor");
     if (this.#editingId && !canvas.scene?.tiles.get(this.#editingId)) this.#editingId = null;
     if (!this.#editingId && editor) editor.innerHTML = "";
+    if (this.#busy) this.#showBusy();
   }
 
   // ---------- markup ---------------------------------------------------------
@@ -162,6 +201,7 @@ export class TheaterPanel extends ApplicationV2 {
         <button type="button" data-act="refit"><i class="fa-solid fa-expand"></i> ${b("Refit")}</button>
         <button type="button" data-act="preload"><i class="fa-solid fa-download"></i> ${b("Preload")}</button>
         <button type="button" data-act="activate"><i class="fa-solid fa-bullhorn"></i> ${b("Activate")}</button>
+        <span class="th-status" role="status"><i class="fa-solid fa-spinner fa-spin"></i> ${esc(t("Busy"))}</span>
         <span class="th-presence ${p.cls}" title="${esc(p.tip)}"><i class="fa-solid ${p.icon}"></i> ${esc(p.text)}</span>
       </div>
       <div class="th-bar th-live">
@@ -213,12 +253,15 @@ export class TheaterPanel extends ApplicationV2 {
 
   async #onClick(ev) {
     const el = ev.target.closest("[data-reveal], [data-edit], [data-ed], [data-act], .th-item");
-    if (!el || !this.element.contains(el) || this.#busy) return;
+    if (!el || !this.element.contains(el)) return;
     ev.preventDefault(); ev.stopPropagation();
+    if (this.#busy) return this.#nudge();
     const stage = this.stage, scene = canvas.scene;
     const fade = this.element.querySelector("input[name=th-fade]")?.checked;
     const editor = this.element.querySelector(".th-editor");
     this.#busy = true;
+    this.#working = controlSelector(el);
+    this.#busyTimer = setTimeout(() => this.#showBusy(), BUSY_DELAY_MS);
     try {
       if (el.dataset.reveal) {
         const tile = scene.tiles.get(el.dataset.reveal);
@@ -267,6 +310,9 @@ export class TheaterPanel extends ApplicationV2 {
       ui.notifications.error(t("Notify.Error", { message: err.message }));
     } finally {
       this.#busy = false;
+      this.#working = null;
+      clearTimeout(this.#busyTimer);
+      this.#showBusy();
       this.#refreshGrids();
     }
   }

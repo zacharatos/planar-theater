@@ -6,12 +6,14 @@ The release workflow uses the section matching the tag as the GitHub release not
 ## [0.2.0]
 
 ### Fixed
+- **Panel no longer goes dead after it is closed.** Reopening the Theater panel left every button and checkbox unresponsive until the browser was reloaded: the click handlers stayed on the old, discarded window instead of the new one.
 - **New Theater scene is now black.** Foundry v14 has no scene `backgroundColor`; the colour lives on the scene's Level, so the helper now sets `level.background.color` (and still sets `backgroundColor` on older versions). The API exposes `paintBlack(scene)` to repair an existing grey scene.
 - **Preload really reaches every player.** In v14 `Scenes#preload` takes an options object (`{broadcast: true}`); the old call passed `true`, so it only preloaded on the GM's client. Preload now goes over the module socket: each player's browser loads the scene's images (including the alternate NPC cards) and linked sounds and replies, and the GM sees who confirmed, who failed and who did not answer.
 - Empty-state messages in the panel no longer wrap into a narrow column.
 - The offer to import tiles from the old macro is now a banner at the top of the panel instead of a small button at the bottom.
 
 ### Added
+- **Busy indicator.** While an action runs (preload, show to players, adding images…) the panel shows a “Working…” chip, highlights the button you pressed and dims the rest; clicking meanwhile shakes the chip instead of being silently ignored.
 - **Clear cast** button, and a **Clear cast on new place** checkbox (remembered per browser) so NPCs from the previous scene slide out when you change place.
 - **Show to players feedback**: after activating, a message says how many players are viewing the scene and names anyone who is not. A presence chip in the toolbar shows the same live.
 - Module socket (`"socket": true`).
