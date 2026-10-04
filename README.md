@@ -16,7 +16,7 @@ Nothing here is tied to a game system or setting. The module ships no artwork or
 In Foundry: **Add-on Modules → Install Module**, paste this into **Manifest URL**, and install:
 
 ```
-https://github.com/YOUR_GITHUB_USER/planar-theater/releases/latest/download/module.json
+https://github.com/zacharatos/planar-theater/releases/latest/download/module.json
 ```
 
 Enable the module in your world.
@@ -64,7 +64,7 @@ Open the panel on the scene the macro was used on. If it finds tiles made by the
 
 ## Support
 
-Open an issue at <https://github.com/YOUR_GITHUB_USER/planar-theater/issues>. Developing or releasing? See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [docs/PUBLISHING.md](docs/PUBLISHING.md).
+Open an issue at <https://github.com/zacharatos/planar-theater/issues>. Developing or releasing? See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) and [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ## License
 
