@@ -3,6 +3,7 @@
 // loaded on the GM's own client. Here every client answers with what it loaded.)
 import { MODULE_ID, PRELOAD_TIMEOUT_MS } from "./constants.mjs";
 import { summarizeAcks } from "./util.mjs";
+import { animateTiles } from "./animate.mjs";
 
 const EVENT = `module.${MODULE_ID}`;
 const textureLoader = () => foundry.canvas?.TextureLoader ?? globalThis.TextureLoader;
@@ -44,6 +45,11 @@ export async function broadcastPreload({ images, sounds }) {
   return { local, recipients, ...summarizeAcks(recipients, acks) };
 }
 
+/** Ask every other browser to play a tile fade/slide (the GM's own browser plays it itself). */
+export function broadcastAnimation(sceneId, entries, ms) {
+  game.socket.emit(EVENT, { op: "animate", from: game.user.id, scene: sceneId, entries, ms });
+}
+
 /** Socket handler: runs on every client (the sender never receives its own emit). */
 export async function onMessage(msg) {
   if (!msg || typeof msg !== "object") return;
@@ -51,6 +57,9 @@ export async function onMessage(msg) {
     if (!game.users.get(msg.from)?.isGM) return; // only a GM may ask clients to load things
     const result = await loadAssets({ images: msg.images ?? [], sounds: msg.sounds ?? [] });
     game.socket.emit(EVENT, { op: "preload-ack", id: msg.id, to: msg.from, user: game.user.id, ...result });
+  } else if (msg.op === "animate") {
+    if (!game.users.get(msg.from)?.isGM) return;
+    animateTiles(msg.scene, Array.isArray(msg.entries) ? msg.entries : [], Number(msg.ms) || 0);
   } else if (msg.op === "preload-ack" && msg.to === game.user.id) {
     const request = pending.get(msg.id);
     if (!request) return;

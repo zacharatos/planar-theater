@@ -63,3 +63,21 @@ test("ignores junk and acks for requests it never made", async () => {
   await onMessage({ op: "preload-ack", id: "nope", to: "u1", user: "z" });
   assert.equal(emitted.length, 0);
 });
+
+test("tile animations: sent with the scene id, ignored from a non-GM or another scene", async () => {
+  const { broadcastAnimation } = await import("../scripts/socket.mjs");
+  emitted.length = 0;
+  globalThis.game.user = { id: "gm" };
+  broadcastAnimation("s1", [{ id: "t", a0: 0, a1: 1 }], 600);
+  assert.equal(emitted.length, 1);
+  assert.deepEqual(
+    { op: emitted[0].msg.op, from: emitted[0].msg.from, scene: emitted[0].msg.scene, ms: emitted[0].msg.ms },
+    { op: "animate", from: "gm", scene: "s1", ms: 600 }
+  );
+
+  // On a player: no canvas here at all, so these must just do nothing.
+  globalThis.game.user = { id: "u1" };
+  await assert.doesNotReject(onMessage({ op: "animate", from: "u1", scene: "s1", entries: [{ id: "t", a0: 0, a1: 1 }], ms: 600 }));
+  await assert.doesNotReject(onMessage({ op: "animate", from: "gm", scene: "s1", entries: "junk", ms: "x" }));
+  assert.equal(emitted.length, 1, "nothing is sent back");
+});

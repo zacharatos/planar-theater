@@ -3,11 +3,10 @@ export const MODULE_ID = "planar-theater";
 /** Image types the folder scan accepts. */
 export const IMG = /\.(png|jpe?g|webp|avif|gif)$/i;
 
-/** Crossfade: number of steps and delay between them (ms). */
-export const FADE_STEPS = 8;
-export const FADE_MS = 45;
-export const TITLE_FADE_IN_MS = 80;
-export const TITLE_FADE_OUT_MS = 100;
+/** Fade and slide durations (ms). Each browser animates them smoothly; only the end state is saved. */
+export const FADE_MS = 600;
+export const TITLE_FADE_IN_MS = 650;
+export const TITLE_FADE_OUT_MS = 800;
 
 /**
  * Tile `sort` bands. Places sit lowest, cast above them, title cards on top,

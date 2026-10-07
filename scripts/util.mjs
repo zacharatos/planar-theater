@@ -48,6 +48,17 @@ export function npcPosition(rect, width, height, side) {
 /** Horizontal slide distance for an NPC entering/leaving on `side`. */
 export const npcSlide = (rect, side) => Math.round(rect.width * NPC.slide) * (side === "left" ? -1 : 1);
 
+/** Smooth start and stop for fades and slides; p runs 0..1 and is clamped. */
+export const easeInOut = p => (p <= 0 ? 0 : p >= 1 ? 1 : p * p * (3 - 2 * p));
+
+/** Tile values at progress p of a fade { a0 -> a1 } with an optional slide { x0 -> x1 }. */
+export function tweenTile(e, p) {
+  const k = easeInOut(p);
+  const out = { alpha: e.a0 + (e.a1 - e.a0) * k };
+  if (e.x0 != null) out.x = Math.round(e.x0 + (e.x1 - e.x0) * k);
+  return out;
+}
+
 /** Sizes of a generated NPC card (portrait + frame + name plate) for a given image. */
 export function cardLayout(iw, ih, rect) {
   const { shadow: SH, pad: PAD, plate: NAME } = CARD;

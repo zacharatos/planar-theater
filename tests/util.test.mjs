@@ -131,3 +131,23 @@ test("playersNotViewing ignores GMs and offline users", () => {
   ];
   assert.deepEqual(playersNotViewing(users, "s1").map(u => u.name), ["Elsewhere"]);
 });
+
+test("easeInOut starts and ends exactly, is symmetric and clamps", async () => {
+  const { easeInOut } = await import("../scripts/util.mjs");
+  assert.equal(easeInOut(0), 0);
+  assert.equal(easeInOut(1), 1);
+  assert.equal(easeInOut(0.5), 0.5);
+  assert.equal(easeInOut(-0.2), 0, "a frame stamped before the start");
+  assert.equal(easeInOut(1.4), 1);
+  assert.ok(Math.abs(easeInOut(0.25) + easeInOut(0.75) - 1) < 1e-12);
+});
+
+test("tweenTile fades alpha and slides x only when asked", async () => {
+  const { tweenTile } = await import("../scripts/util.mjs");
+  assert.deepEqual(tweenTile({ a0: 0, a1: 1 }, 0), { alpha: 0 });
+  assert.deepEqual(tweenTile({ a0: 0, a1: 1 }, 1), { alpha: 1 });
+  assert.deepEqual(tweenTile({ a0: 1, a1: 0, x0: 100, x1: 158 }, 1), { alpha: 0, x: 158 });
+  const mid = tweenTile({ a0: 1, a1: 0, x0: 100, x1: 157 }, 0.5);
+  assert.equal(mid.alpha, 0.5);
+  assert.ok(Number.isInteger(mid.x), "tile x stays an integer");
+});

@@ -1,18 +1,19 @@
 // The Theater "stage": everything that changes tiles on the current scene.
 // The panel (panel.mjs) only calls these methods and renders the result.
 import {
-  MODULE_ID, BAND, FADE_STEPS, FADE_MS, TITLE_FADE_IN_MS, TITLE_FADE_OUT_MS, ACTIVATE_WAIT_MS
+  MODULE_ID, BAND, FADE_MS, TITLE_FADE_IN_MS, TITLE_FADE_OUT_MS, ACTIVATE_WAIT_MS
 } from "./constants.mjs";
 import { t, warn, info } from "./i18n.mjs";
 import { setting } from "./settings.mjs";
 import {
   metaOf, kindOf, nameOf, labelFromPath, containFit, centerIn, npcPosition, npcSlide,
-  titleBox, nextOrder, nextSort, alternateSide, escapeHTML, playersNotViewing
+  titleBox, nextOrder, nextSort, alternateSide, escapeHTML, playersNotViewing, tweenTile
 } from "./util.mjs";
 import { pickFolder, listImages, upload, loadImg } from "./files.mjs";
 import { renderCard, renderTitle } from "./render.mjs";
 import * as sound from "./sound.mjs";
-import { broadcastPreload } from "./socket.mjs";
+import { broadcastPreload, broadcastAnimation } from "./socket.mjs";
+import { animateTiles } from "./animate.mjs";
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const flag = key => `flags.${MODULE_ID}.${key}`;
@@ -60,19 +61,26 @@ export class Stage {
     if (fixes.length) await scene.updateEmbeddedDocuments("Tile", fixes);
   }
 
-  /** Fade (and optionally slide) tiles in small steps. Returns false if `stop()` cut it short. */
+  /**
+   * Fade (and optionally slide) tiles. Every browser on the scene animates them itself, frame
+   * by frame; the end state is saved once. Returns false if `stop()` cut it short.
+   */
   async steps(entries, { ms = FADE_MS, stop } = {}) {
     const scene = this.scene;
-    for (let i = 1; i <= FADE_STEPS; i++) {
-      await sleep(ms);
+    const live = entries.filter(e => scene.tiles.get(e.id));
+    if (!live.length) return true;
+    broadcastAnimation(scene.id, live, ms);
+    animateTiles(scene.id, live, ms);
+    // Wait on the clock, not on the animation: a GM tab in the background gets no frames.
+    const end = Date.now() + ms;
+    for (let left = ms; left > 0; left = end - Date.now()) {
+      await sleep(Math.min(50, left));
       if (stop?.()) return false;
-      const p = i / FADE_STEPS;
-      await scene.updateEmbeddedDocuments("Tile", entries.filter(e => scene.tiles.get(e.id)).map(e => {
-        const u = { _id: e.id, alpha: e.a0 + (e.a1 - e.a0) * p };
-        if (e.x0 != null) u.x = Math.round(e.x0 + (e.x1 - e.x0) * p);
-        return u;
-      }));
     }
+    // diff: false, because this browser's copy already holds the end values from the last
+    // frame, and a normal update compares against that copy and would send nothing.
+    await scene.updateEmbeddedDocuments("Tile", live.filter(e => scene.tiles.get(e.id))
+      .map(e => ({ _id: e.id, ...tweenTile(e, 1) })), { diff: false });
     return true;
   }
 

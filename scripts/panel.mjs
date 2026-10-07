@@ -44,10 +44,11 @@ export class TheaterPanel extends ApplicationV2 {
   static open() {
     if (!game.user.isGM) return warn("Notify.OnlyGM");
     if (!canvas.scene) return warn("Notify.NoScene");
-    this.#instance ??= new TheaterPanel({ position: { height: Math.min(780, Math.round(window.innerHeight * 0.85)) } });
-    this.#instance.render({ force: true });
-    this.#instance.bringToFront?.();
-    return this.#instance;
+    const app = this.#instance ??= new TheaterPanel({ position: { height: Math.min(780, Math.round(window.innerHeight * 0.85)) } });
+    // Only a window that is already open has an element to raise; a first render opens on top anyway.
+    if (app.rendered) app.bringToFront?.();
+    app.render({ force: true });
+    return app;
   }
 
   stage = new Stage();
