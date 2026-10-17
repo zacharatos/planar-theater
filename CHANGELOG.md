@@ -3,6 +3,16 @@
 All notable changes to this module. Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 The release workflow uses the section matching the tag as the GitHub release notes, so keep the `## [x.y.z]` headings exact.
 
+## [1.1.0]
+
+### Added
+- **Optimize images.** Heavy images (PNG, or over 1 MB) get a lighter WebP copy, up to 2560 px wide, saved in `worlds/<world>/theater-optimized/`; the tiles use the copy. A 2–3 MB place becomes a few hundred KB, so players load scenes and join far faster and the server sends much less. The original files are never changed. Toolbar button **Optimize images** for a whole scene, with **Restore originals** to undo.
+- **Optimize images when adding** (world setting, on by default): places added from a folder are optimized first.
+- **Asset audit** (toolbar **Assets**, or `game.modules.get("planar-theater").api.audit()`):
+  - *Files*: every image, sound and video the world's documents and settings use, with its size on the server, biggest first, heavy ones marked. **Optimize** an image and every use switches to the copy; **⇄** replaces any file with another everywhere at once (documents, embedded documents and module settings such as Soundboard pads).
+  - *World data*: the size of what each player downloads on joining, by document type; export/clear the chat log; the biggest documents and folders; move unused actors and items to a *Planar Archive* world compendium (anything on a scene, owned by a player, in a combat or linked from a journal, macro or module stays).
+- API: `audit()`, `optimizeScene({restore})`, `optimizeImage(path)`, `repoint(from, to)`.
+
 ## [1.0.1]
 
 ### Fixed

@@ -1,5 +1,5 @@
 // Pure helpers: no Foundry globals, so they can be unit-tested with plain Node.
-import { IMG, BAND, CARD, NPC, TITLE_HEIGHT, MODULE_ID } from "./constants.mjs";
+import { IMG, BAND, CARD, NPC, TITLE_HEIGHT, MODULE_ID, OPTIMIZE, HEAVY_AUDIO_BYTES, HEAVY_VIDEO_BYTES } from "./constants.mjs";
 
 export const isImage = path => IMG.test(String(path));
 
@@ -118,3 +118,160 @@ export const legacyMetaOf = tile => tile?.flags?.world?.theater;
 export const needsMigration = tile => !!legacyMetaOf(tile) && !metaOf(tile);
 /** The macro and the module share the same data shape; only the flag scope moved. */
 export const convertLegacyMeta = legacy => JSON.parse(JSON.stringify(legacy));
+
+/* ---------- optimizing images ------------------------------------------------ */
+
+/** Size that fits inside a max x max square, never enlarged. */
+export function fitWithin(width, height, max) {
+  const s = Math.min(1, max / Math.max(width, height, 1));
+  return { width: Math.max(1, Math.round(width * s)), height: Math.max(1, Math.round(height * s)), scaled: s < 1 };
+}
+
+/** Short, stable hash of a string (djb2, base 36). */
+export function hash36(text) {
+  let h = 5381;
+  for (const ch of String(text)) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0;
+  return h.toString(36);
+}
+
+/** Name of the optimized copy: the original's name plus a hash of its full path, as .webp. */
+export function optimizedName(path) {
+  const stem = String(path).split(/[?#]/)[0].split("/").pop().replace(/\.[^.]+$/, "");
+  let readable = stem;
+  try { readable = decodeURIComponent(stem); } catch { /* keep the raw name */ }
+  return `${slugify(readable).slice(0, 60)}-${hash36(path)}.webp`;
+}
+
+const LOSSLESS = /\.(png|bmp|tiff?)(\?.*)?$/i;
+
+/** Should this image get a lighter WebP copy? bytes = size on the server, if known. */
+export function needsOptimizing(path, bytes = null, limits = OPTIMIZE) {
+  const p = String(path ?? "");
+  if (!isImage(p.split("?")[0]) || /\.(gif|svg)(\?.*)?$/i.test(p)) return false; // gifs may move; svgs are tiny
+  if (!Number.isFinite(bytes)) return LOSSLESS.test(p);
+  return bytes > limits.heavyBytes || (LOSSLESS.test(p) && bytes > limits.pngBytes);
+}
+
+/** Keep the copy only if it is clearly smaller. */
+export const worthReplacing = (before, after, limits = OPTIMIZE) =>
+  !Number.isFinite(before) || after < before * (1 - limits.minSaving);
+
+/** "2.4 MB", "830 KB" */
+export function formatBytes(bytes) {
+  if (!Number.isFinite(bytes)) return "?";
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/** A Foundry file path as a URL fetch() accepts (spaces, Greek, # …), without encoding twice. */
+export function toURL(path) {
+  const p = String(path);
+  if (/^(https?:|data:|blob:)/i.test(p)) return p;
+  const encoded = /%[0-9a-f]{2}/i.test(p) ? p : encodeURI(p);
+  return encoded.replace(/#/g, "%23");
+}
+
+/* ---------- asset audit ------------------------------------------------------ */
+
+const KIND = [
+  ["image", /\.(png|jpe?g|webp|avif|gif|svg|bmp|tiff?)$/i],
+  ["audio", /\.(mp3|ogg|oga|opus|wav|flac|m4a|aac|weba)$/i],
+  ["video", /\.(mp4|m4v|webm|mov|ogv)$/i]
+];
+
+/** "image" | "audio" | "video" | null, from the file extension. */
+export function mediaKind(path) {
+  const p = String(path ?? "").split(/[?#]/)[0];
+  for (const [kind, re] of KIND) if (re.test(p)) return kind;
+  return null;
+}
+
+/** A string that is itself a media file path (not a data: or blob: URL, not prose). */
+export function isMediaPath(value) {
+  if (typeof value !== "string" || value.length > 600 || /[\n<>"]/.test(value)) return false;
+  if (/^(data|blob):/i.test(value)) return false;
+  return mediaKind(value) !== null;
+}
+
+const ATTR = /\b(?:src|href|poster)\s*=\s*(["'])(.*?)\1/gi;
+const unentity = s => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+const safeDecode = s => { try { return decodeURI(s); } catch { return s; } };
+
+/** Media paths in one string: the string itself, or src/href attributes inside HTML. */
+export function mediaInString(value) {
+  if (typeof value !== "string") return [];
+  if (isMediaPath(value)) return [value];
+  if (!value.includes("=")) return [];
+  const out = [];
+  for (const m of value.matchAll(ATTR)) {
+    const p = safeDecode(unentity(m[2]));
+    if (isMediaPath(p)) out.push(p);
+  }
+  return out;
+}
+
+/** Every media path anywhere inside a value (objects, arrays, HTML strings). */
+export function collectMedia(value, out = new Set()) {
+  if (typeof value === "string") for (const p of mediaInString(value)) out.add(p);
+  else if (Array.isArray(value)) for (const v of value) collectMedia(v, out);
+  else if (value && typeof value === "object") for (const v of Object.values(value)) collectMedia(v, out);
+  return out;
+}
+
+/** Core and package files (Foundry icons, system and module assets): hidden by default in the audit. */
+export const isPackageAsset = path => /^(icons|systems|modules|ui|canvas|sounds|cards|fonts)\//.test(String(path));
+
+/** Is a file heavy for players to download? */
+export function isHeavy(path, bytes) {
+  const kind = mediaKind(path);
+  if (kind === "image") return needsOptimizing(path, bytes);
+  if (kind === "audio") return /\.(wav|flac)(\?.*)?$/i.test(path) || bytes > HEAVY_AUDIO_BYTES;
+  if (kind === "video") return bytes > HEAVY_VIDEO_BYTES;
+  return false;
+}
+
+/** Replace a path inside one string, both as written and URL-encoded (inside HTML). */
+export function replacePath(text, from, to) {
+  if (typeof text !== "string" || !from || !text.includes(from) && !text.includes(encodeURI(from))) return text;
+  let out = text.split(from).join(to);
+  const encFrom = encodeURI(from);
+  if (encFrom !== from) out = out.split(encFrom).join(encodeURI(to));
+  return out;
+}
+
+/** Deep copy of a value with the path replaced; `changed` says whether anything was. */
+export function deepReplace(value, from, to) {
+  if (typeof value === "string") { const v = replacePath(value, from, to); return { value: v, changed: v !== value }; }
+  if (Array.isArray(value)) {
+    let changed = false;
+    const v = value.map(x => { const r = deepReplace(x, from, to); changed ||= r.changed; return r.value; });
+    return { value: changed ? v : value, changed };
+  }
+  if (value && typeof value === "object") {
+    let changed = false;
+    const v = {};
+    for (const [k, x] of Object.entries(value)) { const r = deepReplace(x, from, to); changed ||= r.changed; v[k] = r.value; }
+    return { value: changed ? v : value, changed };
+  }
+  return { value, changed: false };
+}
+
+/**
+ * The update that replaces a path in a document's data: { "dotted.key": newValue }.
+ * Plain objects are followed key by key; an array that changes is replaced whole (Foundry
+ * updates arrays as a unit). `skip` lists dotted keys to leave alone.
+ */
+export function pathUpdates(source, from, to, { skip = [] } = {}) {
+  const updates = {};
+  const walk = (obj, prefix) => {
+    for (const [key, value] of Object.entries(obj ?? {})) {
+      const dotted = prefix ? `${prefix}.${key}` : key;
+      if (skip.includes(dotted) || key === "_id" || key === "_stats") continue;
+      if (value && typeof value === "object" && !Array.isArray(value)) { walk(value, dotted); continue; }
+      const r = deepReplace(value, from, to);
+      if (r.changed) updates[dotted] = r.value;
+    }
+  };
+  walk(source, "");
+  return updates;
+}

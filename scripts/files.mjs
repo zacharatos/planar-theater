@@ -36,13 +36,16 @@ export async function listImages(source, path) {
   return naturalSort((result.files ?? []).filter(isImage));
 }
 
-/** Upload a generated image into worlds/<world>/theater-generated/. Returns its path. */
-export async function upload(source, blob, base) {
-  const dir = `worlds/${game.world.id}/${GENERATED_DIR}`;
+/** Upload a blob as dir/name (the folder is created if needed; an existing file is replaced). Returns its path. */
+export async function uploadAs(source, dir, name, blob) {
   try { await FP().browse(source, dir); } catch { await FP().createDirectory(source, dir); }
-  const ext = blob.type === "image/png" ? "png" : "webp";
-  const name = `${slugify(base)}-${foundry.utils.randomID(6)}.${ext}`;
   const res = await FP().upload(source, dir, new File([blob], name, { type: blob.type }), {}, { notify: false });
   if (res === false || res?.status === "error") throw new Error(res?.message ?? "Upload failed");
   return res?.path ?? `${dir}/${name}`;
+}
+
+/** Upload a generated image into worlds/<world>/theater-generated/. Returns its path. */
+export async function upload(source, blob, base) {
+  const ext = blob.type === "image/png" ? "png" : "webp";
+  return uploadAs(source, `worlds/${game.world.id}/${GENERATED_DIR}`, `${slugify(base)}-${foundry.utils.randomID(6)}.${ext}`, blob);
 }

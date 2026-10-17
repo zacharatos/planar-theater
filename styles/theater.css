@@ -50,3 +50,26 @@
 @keyframes th-pulse{50%{box-shadow:0 0 12px #e8a33d}}
 @keyframes th-nudge{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 @media (prefers-reduced-motion:reduce){.planar-theater .th-working,.planar-theater .th-status.th-nudge,.planar-theater .th-status .fa-spin{animation:none}}
+/* Asset audit */
+.th-audit .window-content{padding:8px 10px}
+.th-audit .th-audit-tabs{display:flex;gap:6px;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:6px}
+.th-audit .th-audit-tabs button{flex:0 0 auto;width:auto}
+.th-audit .th-audit-tabs button.active{border-color:#e8a33d;color:#e8a33d}
+.th-audit .th-audit-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.th-audit .th-audit-bar select{flex:0 0 auto;width:auto}
+.th-audit .th-audit-bar button{flex:0 0 auto;width:auto;margin:0}
+.th-audit .th-audit-bar label{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.th-audit .th-audit-sum{margin:4px 0;font-weight:600}
+.th-audit .th-audit-hint{margin:0 0 6px}
+.th-audit .th-audit-table{width:100%;border-collapse:collapse;font-size:12px;margin:4px 0 10px}
+.th-audit .th-audit-table th{text-align:left;opacity:.7;font-weight:600;border-bottom:1px solid rgba(255,255,255,.15)}
+.th-audit .th-audit-table td{padding:3px 4px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:middle}
+.th-audit .th-audit-table.small{width:auto;min-width:320px}
+.th-audit .th-audit-name{max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.th-audit .th-audit-name small{display:block;opacity:.55;overflow:hidden;text-overflow:ellipsis}
+.th-audit .th-audit-size{white-space:nowrap;text-align:right}
+.th-audit .th-audit-uses{text-align:center;cursor:help}
+.th-audit .th-audit-acts{white-space:nowrap;text-align:right}
+.th-audit .th-audit-acts button{width:auto;display:inline-flex;gap:4px;margin:0 0 0 4px;padding:0 6px;line-height:22px;font-size:12px}
+.th-audit tr.heavy .th-audit-size{color:#f0b34a;font-weight:600}
+.th-audit tr.kept{opacity:.65}

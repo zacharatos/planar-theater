@@ -13,6 +13,11 @@ export function registerSettings() {
     scope: "world", config: true, type: Number, default: 2,
     range: { min: 0, max: 10, step: 0.5 }
   });
+  game.settings.register(MODULE_ID, "optimizeOnAdd", {
+    name: "PLANAR_THEATER.Settings.OptimizeOnAdd.Name",
+    hint: "PLANAR_THEATER.Settings.OptimizeOnAdd.Hint",
+    scope: "world", config: true, type: Boolean, default: true
+  });
   game.settings.register(MODULE_ID, "fade", {
     name: "PLANAR_THEATER.Settings.Fade.Name",
     hint: "PLANAR_THEATER.Settings.Fade.Hint",

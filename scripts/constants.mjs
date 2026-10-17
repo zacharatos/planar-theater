@@ -35,3 +35,17 @@ export const BLACK = "#000000";
 
 /** Folder (inside the world) where generated cards and titles are saved. */
 export const GENERATED_DIR = "theater-generated";
+
+/** Folder (inside the world) where optimized copies of heavy images are saved. */
+export const OPTIMIZED_DIR = "theater-optimized";
+
+/**
+ * Image optimizing: heavy images are re-drawn as WebP no larger than maxSide on the long edge.
+ * heavyBytes: anything above is optimized; PNG/BMP/TIFF above pngBytes too (they compress badly).
+ * A copy is kept only if it saves at least minSaving of the original size.
+ */
+export const OPTIMIZE = { maxSide: 2560, quality: 0.85, heavyBytes: 1_000_000, pngBytes: 300_000, minSaving: 0.2 };
+
+/** Asset audit: audio and video above these sizes are flagged as heavy. */
+export const HEAVY_AUDIO_BYTES = 8 * 1024 * 1024;
+export const HEAVY_VIDEO_BYTES = 20 * 1024 * 1024;

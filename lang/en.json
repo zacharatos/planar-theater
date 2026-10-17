@@ -18,7 +18,11 @@
       "Fade": "Fade",
       "NewScene": "New scene",
       "ClearCast": "Clear cast",
-      "ClearCastOnPlace": "Clear cast on new place"
+      "ClearCastOnPlace": "Clear cast on new place",
+      "Optimize": "Optimize images",
+      "OptimizeHint": "Make lighter WebP copies of this scene's heavy images, so players load the scene faster.",
+      "Audit": "Assets",
+      "AuditHint": "Asset audit: every file the world makes players download, and the world's data size."
     },
     "Editor": {
       "Settings": "Settings",
@@ -77,7 +81,13 @@
       "ActivatedAll": "“{name}” is active and all {count} connected player(s) are viewing it.",
       "ActivatedSome": "“{name}” is active, but only {here} of {total} players are viewing it yet. Not there: {names}.",
       "ActivatedNobody": "“{name}” is active. No players are connected.",
-      "BlackFailed": "Could not set the scene background to black. Set the background colour in Scene Configuration."
+      "BlackFailed": "Could not set the scene background to black. Set the background colour in Scene Configuration.",
+      "OptimizeStart": "Checking {count} image(s) for a lighter copy…",
+      "Optimized": "Optimized {count} image(s): {before} → {after}.",
+      "NothingToOptimize": "Every image on this scene is already light.",
+      "OptimizeFailed": "{count} image(s) could not be optimized; they keep their original file. See the console (F12).",
+      "NothingToRestore": "No optimized images on this scene.",
+      "Restored": "Restored the original images on {count} tile(s)."
     },
     "Settings": {
       "TitleHold": {
@@ -95,6 +105,10 @@
       "ClearCast": {
         "Name": "Clear cast when changing place",
         "Hint": "Starting state of the “Clear cast on new place” checkbox in the Theater panel."
+      },
+      "OptimizeOnAdd": {
+        "Name": "Optimize images when adding",
+        "Hint": "When you add places, heavy images (PNG, or over 1 MB) get a lighter WebP copy first. The originals are not changed."
       }
     },
     "Keybinding": {
@@ -105,6 +119,79 @@
       "All": "{here}/{total} players on this scene",
       "Some": "{here}/{total} players on this scene",
       "Missing": "Not on this scene yet: {names}"
+    },
+    "Optimize": {
+      "Title": "Optimize images",
+      "Body": "Heavy images on this scene (PNG, or over 1 MB) get a lighter WebP copy, up to 2560 px wide, and the Theater uses the copy. Players download a fraction of the size; on screen it looks the same.",
+      "Note": "The original files stay where they are. “Restore originals” puts them back on this scene.",
+      "Run": "Optimize",
+      "Restore": "Restore originals"
+    },
+    "Audit": {
+      "Title": "Asset audit",
+      "Tab": {
+        "files": "Files",
+        "world": "World data"
+      },
+      "Setting": "Setting",
+      "Scanning": "Looking for files…",
+      "Kind": {
+        "All": "All files",
+        "Image": "Images",
+        "Audio": "Audio",
+        "Video": "Video"
+      },
+      "HeavyOnly": "Heavy only",
+      "Packages": "Include system and module files",
+      "Rescan": "Rescan",
+      "FilesSummary": "{count} file(s), {total} in all, {heavy} heavy.",
+      "FilesHint": "Every image, sound and video the world's documents and settings use, biggest first. Heavy files slow down joins and scene changes for every player. Hover the count to see where a file is used.",
+      "NoFiles": "No files match.",
+      "Col": {
+        "File": "File",
+        "Size": "Size",
+        "Uses": "Used",
+        "Type": "Type",
+        "Count": "Count",
+        "Name": "Name",
+        "Keep": "Stays because",
+        "Folder": "Folder",
+        "Movable": "Movable"
+      },
+      "Optimize": "Optimize",
+      "OptimizeHint": "Make a lighter WebP copy and use it everywhere this image is used. The original stays.",
+      "RepointHint": "Replace this file with another one everywhere it is used.",
+      "Optimizing": "Optimizing {name}…",
+      "Optimized": "Optimized: {before} → {after}. Updated {count} document(s).",
+      "NoGain": "The WebP copy would not be much smaller, so the image was left as it is.",
+      "CantOptimize": "This image can't be optimized here (it is on another server).",
+      "RepointTitle": "Replace a file everywhere",
+      "RepointBody": "Replace “{from}” with “{to}” in all {count} place(s) that use it?",
+      "Repointed": "Updated {count} document(s) or setting(s).",
+      "WorldSummary": "World data: about {total}. Every player downloads all of it when they join.",
+      "WorldHint": "Imports (Plutonium, compendium drags) pile up here. Actors and items nobody uses at the table can move to a compendium: they stay one drag away but are no longer sent to every player. Anything on a scene, owned by a player, in a combat or linked from a journal, a macro or a module stays.",
+      "Chat": "Chat log: {count} message(s), {size}.",
+      "ChatExport": "Export chat log",
+      "ChatClear": "Clear chat log",
+      "Biggest": "Biggest documents",
+      "Folders": "Biggest folders",
+      "MovePicked": "Move {count} selected to a compendium",
+      "MoveFolder": "Move to compendium",
+      "MoveTitle": "Move to a compendium",
+      "MoveBody": "Move {count} document(s) ({size}) into the “Planar Archive” compendium and delete them from the world? You can import them back from the compendium at any time.",
+      "Moved": "Moved {count} document(s) to the Planar Archive compendium.",
+      "Pack": {
+        "Actor": "Planar Archive — Actors",
+        "Item": "Planar Archive — Items"
+      },
+      "Keep": {
+        "Type": "Journals, scenes and tables stay",
+        "Character": "A player's character",
+        "Owned": "Owned by a player",
+        "OnScene": "Has a token on a scene",
+        "Combat": "In a combat",
+        "Linked": "Linked from a journal, macro or module"
+      }
     }
   }
 }

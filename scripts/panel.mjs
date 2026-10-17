@@ -5,6 +5,7 @@ import { metaOf, kindOf, nameOf, escapeHTML as esc, playersNotViewing } from "./
 import { Stage } from "./stage.mjs";
 import { migrateScene, pendingLegacyTiles } from "./migrate.mjs";
 import { createTheaterScene } from "./scene.mjs";
+import { AssetAudit } from "./audit.mjs";
 
 const { ApplicationV2 } = foundry.applications.api;
 
@@ -200,8 +201,10 @@ export class TheaterPanel extends ApplicationV2 {
         <button type="button" data-act="add-places"><i class="fa-solid fa-image"></i> ${b("AddPlaces")}</button>
         <button type="button" data-act="add-cast"><i class="fa-solid fa-user-plus"></i> ${b("AddCast")}</button>
         <button type="button" data-act="refit"><i class="fa-solid fa-expand"></i> ${b("Refit")}</button>
+        <button type="button" data-act="optimize" title="${b("OptimizeHint")}"><i class="fa-solid fa-feather"></i> ${b("Optimize")}</button>
         <button type="button" data-act="preload"><i class="fa-solid fa-download"></i> ${b("Preload")}</button>
         <button type="button" data-act="activate"><i class="fa-solid fa-bullhorn"></i> ${b("Activate")}</button>
+        <button type="button" data-act="audit" title="${b("AuditHint")}"><i class="fa-solid fa-scale-balanced"></i> ${b("Audit")}</button>
         <span class="th-status" role="status"><i class="fa-solid fa-spinner fa-spin"></i> ${esc(t("Busy"))}</span>
         <span class="th-presence ${p.cls}" title="${esc(p.tip)}"><i class="fa-solid ${p.icon}"></i> ${esc(p.text)}</span>
       </div>
@@ -248,6 +251,23 @@ export class TheaterPanel extends ApplicationV2 {
     return kindOf(tile) === "npc"
       ? { name: get("ed-name"), side: get("ed-side"), hidden: get("ed-hidden") === "1" }
       : { title: get("ed-title"), sound: get("ed-sound") };
+  }
+
+  /** Optimize (or restore) this scene's images, after saying what will happen. */
+  async #optimize() {
+    const { DialogV2 } = foundry.applications.api;
+    const choice = await DialogV2.wait({
+      window: { title: t("Optimize.Title"), icon: "fa-solid fa-feather" },
+      content: `<p>${esc(t("Optimize.Body"))}</p><p class="th-ed-hint">${esc(t("Optimize.Note"))}</p>`,
+      buttons: [
+        { action: "optimize", label: t("Optimize.Run"), icon: "fa-solid fa-feather", default: true },
+        { action: "restore", label: t("Optimize.Restore"), icon: "fa-solid fa-rotate-left" },
+        { action: "cancel", label: t("Editor.Cancel") }
+      ],
+      rejectClose: false
+    }).catch(() => null);
+    if (choice === "optimize") await this.stage.optimizeImages();
+    else if (choice === "restore") await this.stage.restoreOriginals();
   }
 
   // ---------- clicks ---------------------------------------------------------
@@ -298,6 +318,8 @@ export class TheaterPanel extends ApplicationV2 {
         case "refit": await stage.refitAll(); break;
         case "preload": await stage.preload(); break;
         case "activate": await stage.activate(); break;
+        case "optimize": await this.#optimize(); break;
+        case "audit": AssetAudit.open(); break;
         case "create-scene": await createTheaterScene(); break;
         case "import-legacy": {
           const n = await migrateScene(scene);

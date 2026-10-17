@@ -47,7 +47,7 @@ test("placeholders match between languages", () => {
 
 test("every localization key used in the code exists", () => {
   const known = new Set(flatten(langs.en).map(k => k.replace(/^PLANAR_THEATER\./, "")));
-  const sources = ["panel", "stage", "sound", "scene", "migrate", "settings", "main", "socket"]
+  const sources = ["panel", "stage", "sound", "scene", "migrate", "settings", "main", "socket", "optimize", "audit"]
     .map(n => readFileSync(file(`scripts/${n}.mjs`), "utf8")).join("\n");
   // t("Key"), warn("Key"), info("Key"), t(`Bar.${...}`) are checked by prefix
   const used = [...sources.matchAll(/\b(?:t|warn|info)\(\s*"([\w.]+)"/g)].map(m => m[1]);

@@ -8,6 +8,8 @@ A GM tool for Foundry VTT (v14) for scenes where nobody needs a battle map. Open
 - **Cast**: NPC portraits (any shape) become framed cards with a name plate and slide in from the left or right.
 - **Veiled names**: hide an NPC's name behind a blurred "?" and reveal it when the party learns it.
 - **Preload**: every connected player's browser caches the scene's images and linked sounds, and you get a confirmation per player.
+- **Lighter images**: heavy places (PNG, or over 1 MB) get a WebP copy up to 2560 px wide, automatically when you add them or with one button for a whole scene. Originals are kept and can be restored.
+- **Asset audit**: every image, sound and video the world makes players download, biggest first, with one-click optimize and "replace this file everywhere"; and the world's data size, with unused actors and items moved out to a compendium.
 
 Nothing here is tied to a game system or setting. The module ships no artwork or text from any publisher.
 
@@ -46,8 +48,10 @@ The eye icon on an NPC toggles the veiled name without opening the settings.
 | New scene | Creates a black, gridless 1920×1080 scene with no vision or fog, and opens it |
 | Add places / Add cast | Pick a folder of images |
 | Re-fit | Re-sizes and re-places everything, e.g. after changing the scene size |
+| Optimize images | Gives this scene's heavy images a lighter WebP copy (originals kept); *Restore originals* undoes it |
 | Preload | Preloads images and linked sounds on every connected client and reports who confirmed |
 | Show to players | Activates this scene for everyone and reports how many players are viewing it |
+| Assets | Opens the asset audit (below) |
 | Presence chip | Live count of connected players viewing this scene (green: all, amber: some, grey: nobody) |
 | Black | Hides places, cast and titles (sound keeps playing) |
 | Clear cast | Sends every NPC out |
@@ -55,7 +59,21 @@ The eye icon on an NPC toggles the veiled name without opening the settings.
 | Clear cast on new place | When ticked, changing place also sends the cast out |
 | Fade | Fade and slide instead of instant cuts |
 
-Generated cards and titles are saved in `worlds/<your world>/theater-generated/`.
+Generated cards and titles are saved in `worlds/<your world>/theater-generated/`; optimized copies in `worlds/<your world>/theater-optimized/`.
+
+### Lighter images
+
+Every player downloads every image of a scene when it is drawn, hidden places included. A 2–3 MB PNG becomes a WebP of a few hundred KB that looks the same on screen.
+
+- **When adding places** (setting *Optimize images when adding*, on by default): PNG files and anything over 1 MB get the lighter copy first.
+- **Optimize images** (toolbar): does the same for every place and NPC card already on the scene. **Restore originals** in the same dialog puts the original files back.
+- The original files are never changed or deleted.
+
+### Asset audit (Assets button)
+
+- **Files**: every image, sound and video used by the world's scenes, actors, items, journals, playlists, macros and module settings (e.g. Soundboard pads), with its size on the server, biggest first. *Heavy only* shows what slows players down. **Optimize** makes a WebP copy of an image and uses it everywhere it appears; **⇄** replaces any file with another one everywhere at once (e.g. a 60 MB music file with a short OGG loop).
+- **World data**: what each player downloads on joining, by document type; the chat log (export and clear); the biggest documents and folders. Actors and items nobody uses at the table can move to a *Planar Archive* world compendium. Anything on a scene, owned by a player, in a combat, or linked from a journal, macro or module stays.
+- Compendium contents aren't scanned (players only download them when opened).
 
 ## Coming from the macro?
 

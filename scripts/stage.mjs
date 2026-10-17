@@ -7,13 +7,14 @@ import { t, warn, info } from "./i18n.mjs";
 import { setting } from "./settings.mjs";
 import {
   metaOf, kindOf, nameOf, labelFromPath, containFit, centerIn, npcPosition, npcSlide,
-  titleBox, nextOrder, nextSort, alternateSide, escapeHTML, playersNotViewing, tweenTile
+  titleBox, nextOrder, nextSort, alternateSide, escapeHTML, playersNotViewing, tweenTile, formatBytes
 } from "./util.mjs";
 import { pickFolder, listImages, upload, loadImg } from "./files.mjs";
 import { renderCard, renderTitle } from "./render.mjs";
 import * as sound from "./sound.mjs";
 import { broadcastPreload, broadcastAnimation } from "./socket.mjs";
 import { animateTiles } from "./animate.mjs";
+import { optimizeMany } from "./optimize.mjs";
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const flag = key => `flags.${MODULE_ID}.${key}`;
@@ -254,6 +255,60 @@ export class Stage {
 
   silence() { return sound.silence(this.scene); }
 
+  // ---------- lighter images ---------------------------------------------------
+
+  /** The image fields of a Theater tile: what it shows, plus both versions of an NPC card. */
+  #imageFields(tile) {
+    const m = metaOf(tile);
+    return [["texture.src", tile.texture.src], [flag("cardShown"), m.cardShown], [flag("cardHidden"), m.cardHidden]]
+      .filter(([, value]) => value);
+  }
+
+  /**
+   * Swap every heavy image of this scene for a lighter WebP copy. The originals stay on disk;
+   * each tile remembers them in flags.planar-theater.orig ([[copy, original], …]) for restoreOriginals().
+   */
+  async optimizeImages() {
+    const tiles = this.scene.tiles.filter(tile => metaOf(tile));
+    const paths = [...new Set(tiles.flatMap(tile => this.#imageFields(tile).map(([, value]) => value)))];
+    if (!paths.length) return info("Notify.NothingToOptimize");
+    info("Notify.OptimizeStart", { count: paths.length });
+    const res = await optimizeMany(paths, { source: this.source });
+    if (res.map.size) {
+      const updates = [];
+      for (const tile of tiles) {
+        const upd = { _id: tile.id };
+        const pairs = [...(metaOf(tile).orig ?? [])];
+        for (const [key, value] of this.#imageFields(tile)) {
+          const to = res.map.get(value);
+          if (!to) continue;
+          upd[key] = to;
+          pairs.push([to, value]);
+        }
+        if (Object.keys(upd).length > 1) updates.push({ ...upd, [flag("orig")]: pairs });
+      }
+      await this.scene.updateEmbeddedDocuments("Tile", updates);
+      info("Notify.Optimized", { count: res.map.size, before: formatBytes(res.before), after: formatBytes(res.after) });
+    } else {
+      info("Notify.NothingToOptimize");
+    }
+    if (res.failed.length) warn("Notify.OptimizeFailed", { count: res.failed.length });
+    return res;
+  }
+
+  /** Put the original images back on every tile that was optimized. */
+  async restoreOriginals() {
+    const tiles = this.scene.tiles.filter(tile => metaOf(tile)?.orig?.length);
+    if (!tiles.length) return info("Notify.NothingToRestore");
+    await this.scene.updateEmbeddedDocuments("Tile", tiles.map(tile => {
+      const back = new Map(metaOf(tile).orig);
+      const upd = { _id: tile.id, [flag("orig")]: null };
+      for (const [key, value] of this.#imageFields(tile)) if (back.has(value)) upd[key] = back.get(value);
+      return upd;
+    }));
+    info("Notify.Restored", { count: tiles.length });
+  }
+
   /** Every file this scene can show or play, so nothing loads late at the table. */
   async #assets() {
     const images = new Set(), soundUuids = new Set();
@@ -313,18 +368,30 @@ export class Stage {
     const files = await this.#pickImages();
     if (!files) return;
     const existing = new Set(this.tilesOf("place").map(tile => metaOf(tile).src ?? tile.texture.src));
+    const fresh = files.filter(src => !existing.has(src));
+    if (!fresh.length) return info("Notify.PlacesLoaded");
+    // Heavy images get a lighter WebP copy first (setting "Optimize images when adding").
+    let lighter = new Map();
+    if (setting("optimizeOnAdd")) {
+      info("Notify.OptimizeStart", { count: fresh.length });
+      const res = await optimizeMany(fresh, { source: this.source });
+      lighter = res.map;
+      if (res.map.size) info("Notify.Optimized", { count: res.map.size, before: formatBytes(res.before), after: formatBytes(res.after) });
+      if (res.failed.length) warn("Notify.OptimizeFailed", { count: res.failed.length });
+    }
     const r = this.rect;
     let order = this.#nextOrder("place");
-    const data = files.filter(src => !existing.has(src)).map(src => {
+    const data = fresh.map(src => {
       const label = labelFromPath(src);
+      const shown = lighter.get(src) ?? src;
       return {
-        name: label, texture: { src },
+        name: label, texture: { src: shown },
         x: r.x, y: r.y, width: r.width, height: r.height,
         hidden: true, alpha: 0, sort: BAND.place + order,
-        flags: { [MODULE_ID]: { kind: "place", src, label, order: order++ } }
+        // `src` stays the original, so adding the same folder again skips it.
+        flags: { [MODULE_ID]: { kind: "place", src, label, order: order++, ...(shown !== src ? { orig: [[shown, src]] } : {}) } }
       };
     });
-    if (!data.length) return info("Notify.PlacesLoaded");
     const created = await this.scene.createEmbeddedDocuments("Tile", data);
     await this.fitPlaces(created);
     info("Notify.AddedPlaces", { count: created.length });

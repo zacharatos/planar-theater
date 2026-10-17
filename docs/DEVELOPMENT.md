@@ -10,6 +10,8 @@ scripts/
   stage.mjs            everything that changes tiles: show, hide, fade, add, edit, remove
   render.mjs           canvas drawing of NPC cards and title cards -> Blob
   files.mjs            folder picker, folder listing, upload to the world
+  optimize.mjs         lighter WebP copies of heavy images (draw, encode, upload), file sizes from the server
+  audit.mjs            the asset audit window: files (scan, sizes, optimize, repoint) and world data (sizes, move to compendium)
   sound.mjs            playlist sound switching, loop/fade setup, preload
   scene.mjs            "New scene" helper (black via Level on v14)
   socket.mjs           GM <-> player preload requests and acknowledgements
@@ -48,6 +50,16 @@ Reload the browser tab (F5) after each change; the module has no hot reload.
 
 ### Manual test checklist
 
+Lighter images and the asset audit
+- Add places from a folder of 2–3 MB PNGs: a message says how many were optimized and the total before → after; the tiles show `worlds/<world>/theater-optimized/*.webp`; the panel thumbnails look the same. Add the same folder again: "every image is already loaded" (no duplicates).
+- Turn *Optimize images when adding* off and add a PNG folder: the tiles use the original PNGs.
+- **Optimize images** on the Mortuary scene: places and NPC cards over the limit are converted; run it again: "already light". **Restore originals**: the original files come back (veiled NPC names still switch correctly).
+- With a player connected, reload the player after optimizing: the player's network tab shows the WebP files, several times smaller.
+- **Assets → Files**: the scene PNGs, the Soundboard pad files and the 1-hour music files are listed with sizes, biggest first; *Heavy only* keeps the PNGs, `.wav`/`.flac` and the big `.m4a`. Hover the "Used" number: the scenes, playlists or settings that use the file.
+- **Optimize** on a PNG portrait used by an actor and its token: both now point to the WebP copy.
+- **⇄** on the 1-hour `.m4a`, pick a short `.ogg`: confirm; the playlist sound (and any soundscape that used it) now plays the `.ogg`.
+- **Assets → World data**: sizes per type add up to the total; *Clear chat log* asks first. Tick two unused Plutonium items and **Move**: they appear in the *Planar Archive — Items* compendium and are gone from the sidebar. A player's character, an actor with a token on a scene, and an actor linked from a journal show why they stay and have no checkbox.
+
 - New scene creates a **black** (not grey) 1920×1080 gridless scene and opens it. The button is in the pinned toolbar, not at the bottom.
 - Add places with PNG, JPG and WEBP of different sizes: all fill the scene without cropping or offset.
 - Click places repeatedly with Fade on and off: no flash of the previous image.
@@ -67,6 +79,7 @@ Reload the browser tab (F5) after each change; the module has no hot reload.
 
 - **New user-facing text**: add the key to `lang/en.json` and `lang/el.json`. The language test fails if they differ.
 - **New pure logic**: put it in `util.mjs` with a test.
+- **Image weight**: limits live in `OPTIMIZE` (`constants.mjs`). Optimized copies are named from the original path (`optimizedName`), so optimizing again replaces the same copy. A place's `flags.planar-theater.src` always stays the original (it prevents duplicates when a folder is added again); `flags.planar-theater.orig` holds `[copy, original]` pairs for *Restore originals*. The audit's repoint never touches those two flags.
 - **Data shape**: tile data lives in `flags.planar-theater` (`kind`: place / npc / title). If you change its shape, bump a schema version and write a migration in `migrate.mjs`; people will have scenes built with older versions.
 - **Z-order**: `BAND` in `constants.mjs` keeps places below cast below titles via `sort`.
 - **Tile anchor**: in v14 a tile's `x/y` can be its centre. `Stage#place` measures the real bounds and corrects; do not assume `x/y` is the top-left.

@@ -5,6 +5,9 @@ import { createTheaterScene, paintBlack } from "./scene.mjs";
 import { migrateScene } from "./migrate.mjs";
 import { registerSocket } from "./socket.mjs";
 import { cancelAnimation, cancelAllAnimations } from "./animate.mjs";
+import { AssetAudit, repointEverywhere } from "./audit.mjs";
+import { optimizeImage } from "./optimize.mjs";
+import { Stage } from "./stage.mjs";
 
 Hooks.once("init", () => {
   registerSettings();
@@ -19,7 +22,21 @@ Hooks.once("init", () => {
 Hooks.once("ready", () => {
   registerSocket();
   const module = game.modules.get(MODULE_ID);
-  if (module) module.api = { open: () => TheaterPanel.open(), createScene: createTheaterScene, paintBlack, migrate: migrateScene };
+  if (module) module.api = {
+    open: () => TheaterPanel.open(), createScene: createTheaterScene, paintBlack, migrate: migrateScene,
+    /** The asset audit window (files and world data). */
+    audit: () => AssetAudit.open(),
+    /** Optimize the current scene's Theater images ({restore: true} puts the originals back). */
+    optimizeScene: ({ restore = false } = {}) => {
+      if (!game.user.isGM || !canvas.scene) return null;
+      const stage = new Stage();
+      return restore ? stage.restoreOriginals() : stage.optimizeImages();
+    },
+    /** A lighter WebP copy of one image: {from, to, before, after} or {from, skipped}. */
+    optimizeImage: (path, opts) => optimizeImage(path, opts),
+    /** Replace a file path in every world document and world setting. Returns how many changed. */
+    repoint: (from, to) => repointEverywhere(from, to)
+  };
 });
 
 // Scene controls: a button in the Tokens toolbar (v13/v14 shape).

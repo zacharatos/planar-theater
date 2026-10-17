@@ -28,7 +28,7 @@ await import("../scripts/main.mjs");
 
 test("registers settings and keybinding on init", () => {
   hooks.once.init();
-  assert.deepEqual(registered.settings.sort(), ["planar-theater.clearCastOnPlace", "planar-theater.fade", "planar-theater.soundFade", "planar-theater.titleHold"]);
+  assert.deepEqual(registered.settings.sort(), ["planar-theater.clearCastOnPlace", "planar-theater.fade", "planar-theater.optimizeOnAdd", "planar-theater.soundFade", "planar-theater.titleHold"]);
   assert.deepEqual(registered.keys, ["planar-theater.open"]);
 });
 
@@ -36,7 +36,7 @@ test("exposes an api on ready", () => {
   hooks.once.ready();
   const api = game.modules.get("planar-theater").api;
   assert.deepEqual(registered.sockets, ["module.planar-theater"], "socket listener registered");
-  for (const fn of ["open", "createScene", "paintBlack", "migrate"]) assert.equal(typeof api[fn], "function", fn);
+  for (const fn of ["open", "createScene", "paintBlack", "migrate", "audit", "optimizeScene", "optimizeImage", "repoint"]) assert.equal(typeof api[fn], "function", fn);
 });
 
 test("adds a scene-control tool for the GM only", () => {
