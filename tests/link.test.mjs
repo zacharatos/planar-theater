@@ -46,7 +46,7 @@ test("exposes an api on ready", () => {
   const api = game.modules.get("planar-theater").api;
   assert.deepEqual(registered.sockets, ["module.planar-theater"], "socket listener registered");
   for (const fn of ["open", "createScene", "paintBlack", "migrate", "audit", "optimizeScene", "optimizeImage", "repoint",
-    "places", "cast", "showPlace", "showNpc", "showImage", "hidePlace", "hide", "clearCast", "setUsers", "overlay"]) assert.equal(typeof api[fn], "function", fn);
+    "places", "cast", "showPlace", "showNpc", "showImage", "hidePlace", "hide", "clearCast", "setUsers", "overlay", "pins", "firePin"]) assert.equal(typeof api[fn], "function", fn);
 });
 
 test("adds a scene-control tool for the GM only", () => {

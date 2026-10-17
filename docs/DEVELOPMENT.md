@@ -21,6 +21,7 @@ scripts/
                        title, peek, local sound for chosen players, optional slow map)
   onair.mjs            the GM's "on air" chip over the map
   enrich.mjs           @Place[…] / @Cast[…] journal buttons
+  pins.mjs             map pins: GM-only notes made by dragging from the panel; double-click to show; door prompts
   migrate.mjs          import from the original macro
   settings.mjs  i18n.mjs  constants.mjs
   util.mjs             pure helpers (no Foundry globals), all unit-tested
@@ -71,6 +72,12 @@ Over the map (1.3.0). Two browsers: the GM, and a player on a map scene (e.g. th
 - Start a combat (or roll initiative) with a place up: it comes down and the GM gets a message. With the setting off, it stays.
 - Player presses F5 with a place up: after the reload the picture is there at once (no title card). A player who logs in late sees it too, and the chip count goes up.
 - The chip's screen button: the GM sees what the players see (on the GM's screen only); click again to return to the map.
+- **Map pins**: drag *M1 Morgue* from the panel onto the map next to a door: a masks pin appears with its name and a message says it is linked to a door. A player sees no pin. Double-click it: the place shows over the map; again: it comes down. Drag an NPC: double-click brings the card in and out.
+- As a player, open that door: the GM gets *"Door opened: show «M1 Morgue»?"*; *Show* shows it; *Not now* and the 30-second timeout do nothing. Close and open the door again: asked again. In the note's settings set *Show it at once*: opening the door shows it without asking; *Nothing*: no card.
+- Move the pin next to another door: it links to that one. Move it into an empty room: the door option greys out ("No door within 2½ squares").
+- Pin with *Show as: Window* and *Transition: Iris* in its settings: double-click uses them regardless of the panel.
+- Double-clicking a pin must never open the «Planar Theater — map pins» journal. If it does (`activateNote` missing on this Foundry build), the journal closes at once and the pin under the mouse fires instead.
+- Remove all places on the Theater scene, add the folder again (new tile ids), double-click an old pin: it finds the place by its name.
 - In a journal: `@Place[Jex]`, `@Place[Jex | mode=window | fx=iris]{Jex's door}`, `@Place[Jex | to=Nanouk]`, `@Cast[Jex]`, `@Place[off]`. The GM sees ▶ buttons that work; a player who can see the journal sees plain text.
 - Macro: `game.modules.get("planar-theater").api.showPlace("Jex", {transition: "glitch"})`, `.showImage("worlds/x/handout.webp", {title: "Ο Χάρτης | Σιγίλ"})`, `.hide()`.
 - *Slow the map behind a full-screen place* (client setting) on a laptop: GPU use drops while a full-screen place is up; the map runs normally again when peeking and after taking it down.

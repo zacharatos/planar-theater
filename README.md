@@ -94,6 +94,14 @@ The party is on a battle map and opens a door: show the place behind it without 
 - Settings: *Take the picture down when combat starts* (on), *Turn the Soundboard down over the map* (on; uses Planar Soundboard's Narrate if installed), *Slow the map behind a full-screen place* (per browser, off).
 - Shown to chosen players only, the picture and sound reach only their screens, but the data is in a world setting any browser can read. For real secrets use a private-message module.
 
+### Map pins
+
+Drag a place or an NPC from the panel (over a map) onto the map to pin it there. Only you see the pin.
+
+- **Double-click the pin** to show the place over the map; double-click again to take it down. An NPC pin brings the NPC in or out.
+- **Next to a door** (within 2½ squares), the pin is linked to it: when anyone opens that door you get a *"Door opened: show …?"* card with **Show** / **Not now**. Open the pin's note settings to choose *Ask me*, *Show it at once* or *Nothing*, and an optional *Show as* / *Transition* for that pin.
+- Pins are map notes linked to a GM-only journal («Planar Theater — map pins»). Move or delete them like any note; players can't see them. Map notes need to be shown (the Theater turns that on for you when you make the first pin).
+
 ### Journal buttons
 
 In any journal page the GM sees a ▶ button for (players see the plain label):

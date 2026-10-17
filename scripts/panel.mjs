@@ -8,6 +8,7 @@ import { createTheaterScene } from "./scene.mjs";
 import { AssetAudit } from "./audit.mjs";
 import * as overlay from "./overlay.mjs";
 import { pickFile } from "./files.mjs";
+import { dragData } from "./pins.mjs";
 import { OVERLAY_MODES, OVERLAY_FX } from "./constants.mjs";
 
 const { ApplicationV2 } = foundry.applications.api;
@@ -106,6 +107,19 @@ export class TheaterPanel extends ApplicationV2 {
     this.#boundTo = this.element;
     this.element.addEventListener("click", ev => this.#onClick(ev));
     this.element.addEventListener("change", ev => this.#onChange(ev));
+    this.element.addEventListener("dragstart", ev => this.#onDragStart(ev));
+  }
+
+  /** Over a map: drag a place or NPC onto the map to pin it there (pins.mjs). */
+  #onDragStart(ev) {
+    const item = ev.target.closest?.("[data-ov-place], [data-ov-npc]");
+    const scene = this.remote ? this.#overScene() : null;
+    if (!item || !scene || !ev.dataTransfer) return;
+    const npc = !!item.dataset.ovNpc;
+    const tile = scene.tiles.get(item.dataset.ovPlace ?? item.dataset.ovNpc);
+    if (!tile) return;
+    ev.dataTransfer.setData("text/plain", JSON.stringify(dragData(npc ? "npc" : "place", scene, tile, nameOf(tile))));
+    ev.dataTransfer.effectAllowed = "copy";
   }
 
   async _onClose() {
@@ -268,8 +282,9 @@ export class TheaterPanel extends ApplicationV2 {
       ? `${m.side === "left" ? "◀ " : "▶ "}${m.nameHidden ? `<i class="fa-solid fa-eye-slash"></i> ` : ""}`
       : `${m.sound ? `<i class="fa-solid fa-music"></i> ` : ""}${m.title ? `<i class="fa-solid fa-heading"></i> ` : ""}`;
     const data = npc ? `data-ov-npc="${tile.id}"` : `data-ov-place="${tile.id}"`;
-    return `<div class="th-item ${live ? "live" : ""}" ${data} role="button" tabindex="0" title="${esc(nameOf(tile))}">
-      <img src="${esc(tile.texture.src)}" alt="" loading="lazy">
+    return `<div class="th-item ${live ? "live" : ""}" ${data} role="button" tabindex="0" draggable="true"
+      title="${esc(`${nameOf(tile)} — ${t("Pins.DragHint")}`)}">
+      <img src="${esc(tile.texture.src)}" alt="" loading="lazy" draggable="false">
       <span><span class="th-tags">${tags}</span>${esc(nameOf(tile))}</span>
     </div>`;
   }

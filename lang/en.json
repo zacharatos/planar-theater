@@ -246,7 +246,7 @@
         "cut": "Cut"
       },
       "Hide": "Take down",
-      "Hint": "You're on a map. Click a place to show it over the map, click an NPC to bring them in or out; players stay on this scene and come back to it when you take it down. A second click on the place that is up re-sends it with the choices above.",
+      "Hint": "You're on a map. Click a place to show it over the map, click an NPC to bring them in or out; players stay on this scene and come back to it when you take it down. Drag a place or NPC onto the map to pin it there: only you see the pin; double-click it during play. A second click on the place that is up re-sends it with the choices above.",
       "NoTheater": "There is no Theater scene in this world yet. Press “New scene”, add places and cast there, then come back to this map.",
       "NoPlaces": "This Theater scene has no places.",
       "NoCast": "This Theater scene has no NPCs.",
@@ -285,6 +285,28 @@
       "PlacesBody": "Remove all {count} place(s) and their title cards from “{scene}”? The image files stay on the server, so you can add them again.",
       "CastTitle": "Remove all NPCs",
       "CastBody": "Remove all {count} NPC card(s) from “{scene}”? The portrait files stay on the server, so you can add them again."
+    },
+    "Pins": {
+      "JournalName": "Planar Theater — map pins (GM only)",
+      "DragHint": "click to show over the map; drag onto the map to pin it there",
+      "Created": "Pinned “{name}” to the map. Double-click the pin to show it over the map.",
+      "CreatedDoor": "Pinned “{name}” next to a door: when the door opens you'll be asked whether to show it. Double-click the pin to show it any time.",
+      "NotesShown": "Map notes are now shown, so you can see your Theater pins (players never see them).",
+      "Failed": "Theater: the pin could not be created. See the console (F12).",
+      "DoorAsk": "Door opened: show “{name}”?",
+      "Show": "Show",
+      "NotNow": "Not now",
+      "Legend": "Planar Theater pin",
+      "Shows": "Shows",
+      "OnDoor": "When the door opens",
+      "Door": {
+        "ask": "Ask me",
+        "show": "Show it at once",
+        "off": "Nothing"
+      },
+      "DoorLinked": "Linked to the nearest door. Move the pin next to another door to link that one.",
+      "NoDoor": "No door within 2½ squares. Move the pin next to a door to link it.",
+      "PanelChoice": "As chosen in the panel"
     }
   }
 }

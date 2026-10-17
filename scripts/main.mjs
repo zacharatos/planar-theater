@@ -11,6 +11,7 @@ import { Stage } from "./stage.mjs";
 import * as overlay from "./overlay.mjs";
 import * as layer from "./layer.mjs";
 import { registerEnrichers, listenForClicks } from "./enrich.mjs";
+import * as pins from "./pins.mjs";
 
 Hooks.once("init", () => {
   registerSettings();
@@ -22,6 +23,7 @@ Hooks.once("init", () => {
   });
   overlay.registerOverlaySettings();
   registerEnrichers();
+  pins.registerPins();
 });
 
 Hooks.once("ready", () => {
@@ -60,7 +62,11 @@ Hooks.once("ready", () => {
     /** Change who sees what is up (user or character names, or ids; none = everyone). */
     setUsers: list => overlay.setUsers(list),
     /** What is showing right now. */
-    overlay: () => overlay.state()
+    overlay: () => overlay.state(),
+    /** Map pins on a scene (the viewed one by default): [{id, x, y, kind, scene, id, label, door, onDoor, mode, fx}]. */
+    pins: scene => pins.pins(scene),
+    /** Use a pin as if it were double-clicked (note document or id on the viewed scene). */
+    firePin: note => pins.firePin(typeof note === "string" ? canvas.scene?.notes.get(note) : note)
   };
   overlay.initOverlay({ openPanel: () => TheaterPanel.open() });
   listenForClicks();

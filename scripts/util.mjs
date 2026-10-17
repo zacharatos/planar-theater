@@ -431,3 +431,32 @@ const tokenCount = scene => scene?.tokens?.size ?? scene?.tokens?.length ?? 0;
  */
 export const isStageScene = scene =>
   !!(scene?.flags?.[MODULE_ID]?.theater || (hasTheaterTiles(scene) && tokenCount(scene) === 0));
+
+/* ---------- map pins ------------------------------------------------------------ */
+
+/** What a pin does when its linked door opens. */
+export const DOOR_CHOICES = ["ask", "show", "off"];
+
+/** Distance from a point to a segment. */
+export function distToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, len = dx * dx + dy * dy;
+  const k = len ? Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / len)) : 0;
+  return Math.hypot(px - (x1 + k * dx), py - (y1 + k * dy));
+}
+
+/**
+ * The door wall closest to (x, y), within maxDist, or null.
+ * @param {{id: string, c: number[], door: number}[]} walls  door > 0 means a door (or secret door)
+ */
+export function nearestDoor(walls, x, y, maxDist) {
+  let best = null, bestDist = Infinity;
+  for (const w of walls ?? []) {
+    if (!(w?.door > 0) || !Array.isArray(w.c) || w.c.length < 4) continue;
+    const d = distToSegment(x, y, ...w.c);
+    if (d <= maxDist && d < bestDist) { best = w; bestDist = d; }
+  }
+  return best;
+}
+
+/** The Theater data on a map note, or null. */
+export const pinOf = note => note?.flags?.[MODULE_ID]?.pin ?? null;

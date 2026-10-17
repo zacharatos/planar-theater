@@ -3,6 +3,15 @@
 All notable changes to this module. Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 The release workflow uses the section matching the tag as the GitHub release notes, so keep the `## [x.y.z]` headings exact.
 
+## [1.4.0]
+
+### Added
+- **Map pins.** Over a map, drag a place or an NPC from the Theater panel onto the map: it becomes a pin (a map note) that **only the GM sees**. Double-click the pin during play to show that place over the map (again to take it down), or to bring the NPC in or out.
+  - **Doors**: a pin dropped within 2½ squares of a door is linked to it. When anyone opens that door, the GM gets a small *"Door opened: show …?"* card (Show / Not now; it goes away by itself after 30 s). Per pin, in the note's sheet: *Ask me* (default), *Show it at once*, or *Nothing*. Moving the pin next to another door links that one.
+  - Per pin, optional *Show as* and *Transition* (otherwise the panel's choices).
+  - Pins are ordinary Foundry notes linked to one GM-only journal entry («Planar Theater — map pins»), so players never see them and you move, edit or delete them like any note. Map notes are switched on for the GM when the first pin is made.
+- API: `pins(scene)`, `firePin(note)`.
+
 ## [1.3.1]
 
 ### Added
