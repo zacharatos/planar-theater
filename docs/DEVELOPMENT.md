@@ -57,6 +57,7 @@ Reload the browser tab (F5) after each change; the module has no hot reload.
 ### Manual test checklist
 
 Over the map (1.3.0). Two browsers: the GM, and a player on a map scene (e.g. the Mortuary).
+- A map that holds Theater places itself (tokens on it, e.g. *Map 1.1: Mortuary Basement*): the panel opens **Over the map** with "(this map)" selected and lists its places; clicking one shows it over the map, never on the map's canvas. A picture left drawn on the canvas shows the *Hide them* notice.
 - Open the panel on the map: it shows **Over the map**, a Theater scene picker, *Who sees it*, *Show as*, *Transition*. On the Theater scene itself the panel is unchanged.
 - **Preload for the map**: "Preloaded on: <player>"; the player's network tab shows the place images (no GPU textures needed).
 - Click a place (Fade, Full screen): the player sees it over the map, the title card, the linked sound; the token layer is not touched and nobody changes scene. The GM stays on the map and gets the red **on air** chip at the top with `1/1`.
@@ -96,6 +97,7 @@ Lighter images and the asset audit
 - Veil an NPC: players see `?`; reveal restores the name instantly; rename regenerates the card.
 - Close the folder picker without choosing: the panel stays usable.
 - Remove a place that has a title card: both tiles disappear.
+- **Remove all** next to *Places*: a dialog names the count and the scene; Cancel changes nothing; confirm removes every place and every title card. **Remove all** next to *Cast* removes only the NPC cards. Over a map, both act on the scene picked in the panel (e.g. "(this map)"). The buttons are hidden when the list is empty.
 - Preload with a player connected (a second browser logged in as a player): a message says "Preloaded on: <name>". No "file(s) failed to load" warning appears, and the player's console has no `texture preload failed`. Rename one place image on disk so it can't load, then Preload: only that file is reported. With nobody connected it says so. Close the player's tab mid-way: that player is reported as not answering.
 - Show to players with a player on another scene: the message names that player; once they switch, the presence chip turns green. Check that `viewedScene` is kept up to date.
 - Clear cast button and the "Clear cast on new place" checkbox: NPCs slide out; the checkbox survives a reload.
@@ -106,6 +108,7 @@ Lighter images and the asset audit
 
 - **New user-facing text**: add the key to `lang/en.json` and `lang/el.json`. The language test fails if they differ.
 - **New pure logic**: put it in `util.mjs` with a test.
+- **Never delete files.** Removing anything deletes Tile documents only; the module must never delete, move or overwrite a file the GM uploaded (it only writes new files into `theater-generated/` and `theater-optimized/`). `tests/no-file-deletion.test.mjs` scans the code for file-deleting calls and checks *Remove all*; don't weaken it.
 - **Image weight**: limits live in `OPTIMIZE` (`constants.mjs`). Optimized copies are named from the original path (`optimizedName`), so optimizing again replaces the same copy. A place's `flags.planar-theater.src` always stays the original (it prevents duplicates when a folder is added again); `flags.planar-theater.orig` holds `[copy, original]` pairs for *Restore originals*. The audit's repoint never touches those two flags.
 - **Data shape**: tile data lives in `flags.planar-theater` (`kind`: place / npc / title). If you change its shape, bump a schema version and write a migration in `migrate.mjs`; people will have scenes built with older versions.
 - **Z-order**: `BAND` in `constants.mjs` keeps places below cast below titles via `sort`.

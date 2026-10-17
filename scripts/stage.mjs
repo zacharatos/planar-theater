@@ -475,6 +475,33 @@ export class Stage {
     await tile.update({ [flag("title")]: title || null, [flag("sound")]: values.sound || null });
   }
 
+  /**
+   * Remove every place (with its title card) or every NPC card from this scene, after asking.
+   * Deletes only the Tile documents; the image files are NEVER deleted, moved or changed
+   * (tests/no-file-deletion.test.mjs guards this). Returns how many were removed.
+   */
+  async removeAll(kind) {
+    const tiles = this.tilesOf(kind);
+    if (!tiles.length) { info(kind === "npc" ? "Notify.NoCastToRemove" : "Notify.NoPlacesToRemove"); return 0; }
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      window: { title: t(kind === "npc" ? "RemoveAll.CastTitle" : "RemoveAll.PlacesTitle") },
+      content: `<p>${t(kind === "npc" ? "RemoveAll.CastBody" : "RemoveAll.PlacesBody",
+        { count: tiles.length, scene: escapeHTML(this.scene.name) })}</p>`
+    });
+    if (!ok) return 0;
+    const ids = new Set(tiles.map(tile => tile.id));
+    if (kind === "place") {
+      // their title cards, and any title card whose place is already gone
+      for (const o of this.tilesOf("title")) {
+        const parent = metaOf(o).parent;
+        if (ids.has(parent) || !this.scene.tiles.get(parent)) ids.add(o.id);
+      }
+    }
+    await this.scene.deleteEmbeddedDocuments("Tile", [...ids]);
+    info(kind === "npc" ? "Notify.RemovedCast" : "Notify.RemovedPlaces", { count: tiles.length });
+    return tiles.length;
+  }
+
   async remove(tile) {
     const ok = await foundry.applications.api.DialogV2.confirm({
       window: { title: t("Remove.Title") },

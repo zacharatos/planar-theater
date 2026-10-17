@@ -122,3 +122,7 @@ a.pt-show{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-ra
 a.pt-show:hover{background:rgba(201,161,78,.25)}
 a.pt-show.busy{opacity:.6;cursor:progress}
 @media (prefers-reduced-motion:reduce){.pt-ov-stage.glitching::after{animation:none;display:none}}
+/* "Remove all" next to the Places / Cast headings */
+.planar-theater h3.th-section{display:flex;align-items:center;gap:8px}
+.planar-theater .th-remove-all{flex:0 0 auto;width:auto;margin:0 0 0 auto;padding:0 8px;line-height:20px;height:22px;font-size:11px;text-transform:none;letter-spacing:0;opacity:.7}
+.planar-theater .th-remove-all:hover{opacity:1;color:#e04a3a;border-color:#e04a3a}

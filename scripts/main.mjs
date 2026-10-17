@@ -84,7 +84,10 @@ Hooks.on("getSceneControlButtons", controls => {
 for (const hook of ["createTile", "updateTile", "deleteTile"]) {
   Hooks.on(hook, doc => {
     const panel = TheaterPanel.instance;
-    if (doc.parent === canvas.scene || panel?.remote) panel?.refreshSoon();
+    if (!panel?.rendered) return;
+    // Over a map, a tile shown or hidden on the map itself changes the "drawn on this map" notice.
+    if (panel.remote && doc.parent === canvas.scene) panel.render();
+    else if (doc.parent === canvas.scene || panel.remote) panel.refreshSoon();
   });
 }
 Hooks.on("canvasReady", () => {

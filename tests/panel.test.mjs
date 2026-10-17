@@ -128,3 +128,25 @@ test("on a map (not a Theater scene) the panel switches to over-the-map mode", a
   }
   assert.equal(new TheaterPanel().remote, false, "a Theater scene keeps the normal panel");
 });
+
+test("a map that holds Theater places (and tokens) opens over the map, listing its own places", async () => {
+  const theaterScene = canvas.scene;
+  const place = { id: "t1", hidden: false, alpha: 1, texture: { src: "m1.webp" }, flags: { "planar-theater": { kind: "place", label: "M1 Morgue", order: 0 } } };
+  const map = { id: "map", name: "Map 1.1", tiles: [place], tokens: { size: 4 }, flags: {}, getFlag: () => null };
+  map.tiles.filter = Array.prototype.filter.bind(map.tiles);
+  canvas.scene = map;
+  game.scenes = [map];
+  try {
+    const panel = new TheaterPanel();
+    assert.equal(panel.remote, true, "tokens on it: it's a map");
+    const html = await panel._renderHTML();
+    assert.match(html, /data-ov-place="t1"/, "its own places are listed to show over the map");
+    assert.match(html, /Over\.ThisMap/);
+    assert.match(html, /data-act="ov-hide-tiles"/, "offers to hide the picture left drawn on the map");
+    assert.match(html, /data-act="remove-places"/, "Remove all places for the listed scene");
+    assert.doesNotMatch(html, /data-act="remove-cast"/, "no Remove all when there is no cast");
+  } finally {
+    canvas.scene = theaterScene;
+    game.scenes = [];
+  }
+});

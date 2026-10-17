@@ -416,6 +416,18 @@ export function npcBoxFrac(sceneWidth, sceneHeight, width, height, side) {
   return { left: b.left / sceneWidth, top: b.top / sceneHeight, width: b.width / sceneWidth, height: b.height / sceneHeight };
 }
 
-/** A Theater scene: made by "New scene", or holding Theater tiles. */
-export const isTheaterScene = scene =>
-  !!(scene?.flags?.[MODULE_ID]?.theater || scene?.tiles?.some?.(tile => !!metaOf(tile) && kindOf(tile) !== "title"));
+/** Holds Theater places or NPC cards (a title card alone doesn't count). */
+export const hasTheaterTiles = scene => !!scene?.tiles?.some?.(tile => !!metaOf(tile) && kindOf(tile) !== "title");
+
+/** A scene to take Theater places from: made by "New scene", or holding Theater tiles (a map may hold them too). */
+export const isTheaterScene = scene => !!(scene?.flags?.[MODULE_ID]?.theater || hasTheaterTiles(scene));
+
+const tokenCount = scene => scene?.tokens?.size ?? scene?.tokens?.length ?? 0;
+
+/**
+ * A Theater *stage*: a scene whose canvas is the Theater itself (black, no tokens), where places are
+ * switched as tiles. Made by "New scene", or Theater tiles and no tokens. Any other scene is a map:
+ * there, places go over the map instead of onto its canvas (under fog and lighting).
+ */
+export const isStageScene = scene =>
+  !!(scene?.flags?.[MODULE_ID]?.theater || (hasTheaterTiles(scene) && tokenCount(scene) === 0));

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  overlayIsOn, overlayTargets, overlayChanges, foldName, findByName, parseShowArgs, resolveUsers, npcBoxFrac, isTheaterScene
+  overlayIsOn, overlayTargets, overlayChanges, foldName, findByName, parseShowArgs, resolveUsers, npcBoxFrac, isTheaterScene, isStageScene
 } from "../scripts/util.mjs";
 
 const place = (id, src = `${id}.webp`) => ({ id, src, label: id });
@@ -101,4 +101,14 @@ test("isTheaterScene: the New scene flag, or Theater tiles", () => {
   assert.equal(isTheaterScene({ flags: {}, tiles: [tile("title")] }), false, "a stray title card doesn't count");
   assert.equal(isTheaterScene({ flags: {}, tiles: [{ flags: {} }] }), false);
   assert.equal(isTheaterScene(null), false);
+});
+
+test("isStageScene: a map holding Theater tiles is still a map", () => {
+  const tile = kind => ({ flags: { "planar-theater": { kind } } });
+  const tokens = n => ({ size: n });
+  assert.equal(isStageScene({ flags: { "planar-theater": { theater: true } }, tiles: [], tokens: tokens(0) }), true, "New scene");
+  assert.equal(isStageScene({ flags: {}, tiles: [tile("place")], tokens: tokens(0) }), true, "old Theater scene without the flag");
+  assert.equal(isStageScene({ flags: {}, tiles: [tile("place")], tokens: tokens(5) }), false, "the Mortuary map with places on it");
+  assert.equal(isStageScene({ flags: {}, tiles: [], tokens: tokens(0) }), false, "an empty scene");
+  assert.equal(isTheaterScene({ flags: {}, tiles: [tile("place")], tokens: tokens(5) }), true, "but its places can still be shown");
 });

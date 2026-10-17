@@ -3,6 +3,16 @@
 All notable changes to this module. Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 The release workflow uses the section matching the tag as the GitHub release notes, so keep the `## [x.y.z]` headings exact.
 
+## [1.3.1]
+
+### Added
+- **Remove all** next to the *Places* and *Cast* headings in the panel: removes every place (with its title card) or every NPC card from the scene, after asking. Over a map, it acts on the scene listed in the panel.
+- **The Theater never deletes your files.** Removing places or NPCs (one or all) deletes only the tiles on the scene; the image files in your folders are never deleted, moved or changed. A new test (`tests/no-file-deletion.test.mjs`) fails if any code ever could.
+
+### Fixed
+- **Over the map didn't start on a map that holds Theater places.** A scene with Theater tiles counted as a Theater stage even when it was a battle map with tokens, so the panel opened in its normal mode and a clicked place was drawn on the map's own canvas, under its fog and lighting, instead of over the map. A scene is now a Theater stage only if it was made with *New scene* or has Theater tiles and no tokens; on any other scene the panel opens **Over the map**, listing that map's own places first ("(this map)").
+- Pictures left drawn on a map's canvas by the above get a notice in the panel with **Hide them**.
+
 ## [1.3.0]
 
 ### Added

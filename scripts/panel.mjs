@@ -1,7 +1,7 @@
 import { MODULE_ID } from "./constants.mjs";
 import { t, warn } from "./i18n.mjs";
 import { setting, setSetting } from "./settings.mjs";
-import { metaOf, kindOf, nameOf, escapeHTML as esc, playersNotViewing, isTheaterScene, overlayIsOn } from "./util.mjs";
+import { metaOf, kindOf, nameOf, escapeHTML as esc, playersNotViewing, isStageScene, hasTheaterTiles, overlayIsOn } from "./util.mjs";
 import { Stage } from "./stage.mjs";
 import { migrateScene, pendingLegacyTiles } from "./migrate.mjs";
 import { createTheaterScene } from "./scene.mjs";
@@ -72,13 +72,22 @@ export class TheaterPanel extends ApplicationV2 {
   }
 
   /** On a map (not a Theater scene) the panel shows places of a Theater scene to put over the map. */
-  get remote() { return !!canvas.scene && !isTheaterScene(canvas.scene); }
+  get remote() { return !!canvas.scene && !isStageScene(canvas.scene); }
 
-  /** The Theater scene the panel lists over a map: the one picked last, or the first. */
+  /**
+   * The scene whose places the panel lists over a map: the one picked last on this map; else this map
+   * itself if it holds Theater places; else the one picked last anywhere; else the first.
+   */
   #overScene() {
     const scenes = overlay.theaterScenes();
-    const id = overlay.prefs().scene;
-    return scenes.find(s => s.id === id) ?? scenes[0] ?? null;
+    const p = overlay.prefs(), map = canvas.scene;
+    const byId = id => (id ? scenes.find(s => s.id === id) : null);
+    return byId(p.sceneFor?.[map?.id]) ?? (hasTheaterTiles(map) ? map : null) ?? byId(p.scene) ?? scenes[0] ?? null;
+  }
+
+  /** Theater tiles left visible on this map's own canvas (e.g. clicked with 1.3.0). */
+  #tilesOnMap() {
+    return (canvas.scene?.tiles ?? []).filter(tile => metaOf(tile) && (!tile.hidden || tile.alpha > 0));
   }
 
   async _prepareContext() { return {}; }
@@ -111,7 +120,8 @@ export class TheaterPanel extends ApplicationV2 {
     const box = ev.target;
     const save = patch => overlay.setPrefs(patch).catch(err => console.warn(`${MODULE_ID} |`, err));
     switch (box?.name) {
-      case "ov-scene": return save({ scene: box.value }).then(() => this.#refreshGrids());
+      case "ov-scene": return save({ scene: box.value, sceneFor: { ...overlay.prefs().sceneFor, [canvas.scene?.id]: box.value } })
+        .then(() => this.#refreshGrids());
       case "ov-mode": return save({ mode: box.value });
       case "ov-fx": return save({ transition: box.value });
       case "ov-user": return save({ users: [...this.element.querySelectorAll("input[name=ov-user]:checked")].map(x => x.value) });
@@ -198,13 +208,19 @@ export class TheaterPanel extends ApplicationV2 {
     </div>`;
   }
 
+  /** Section heading with a "Remove all" button when there is something to remove. */
+  #headHTML(label, act, count) {
+    return `<h3 class="th-section">${esc(label)}${count ? `<button type="button" class="th-remove-all" data-act="${act}"
+      title="${esc(t("RemoveAll.Hint"))}"><i class="fa-solid fa-trash"></i> ${esc(t("RemoveAll.Button"))}</button>` : ""}</h3>`;
+  }
+
   #gridsHTML() {
     if (this.remote) return this.#remoteGridsHTML();
     const stage = this.stage;
     const places = stage.tilesOf("place"), cast = stage.tilesOf("npc");
-    return `<h3>${esc(t("Places"))}</h3>
+    return `${this.#headHTML(t("Places"), "remove-places", places.length)}
       <div class="th-grid">${places.length ? places.map(x => this.#itemHTML(x)).join("") : `<p class="th-empty">${esc(t("NoPlaces"))}</p>`}</div>
-      <h3>${esc(t("Cast"))}</h3>
+      ${this.#headHTML(t("Cast"), "remove-cast", cast.length)}
       <div class="th-grid cast">${cast.length ? cast.map(x => this.#itemHTML(x)).join("") : `<p class="th-empty">${esc(t("NoCast"))}</p>`}</div>`;
   }
 
@@ -266,9 +282,9 @@ export class TheaterPanel extends ApplicationV2 {
     const places = stage.tilesOf("place"), cast = stage.tilesOf("npc");
     const livePlace = id => on && st.place?.id === id;
     const liveNpc = id => on && (st.cast ?? []).some(c => c.id === id);
-    return `<h3>${esc(t("Places"))}</h3>
+    return `${this.#headHTML(t("Places"), "remove-places", places.length)}
       <div class="th-grid">${places.length ? places.map(x => this.#remoteItemHTML(x, livePlace(x.id))).join("") : `<p class="th-empty">${esc(t("Over.NoPlaces"))}</p>`}</div>
-      <h3>${esc(t("Cast"))}</h3>
+      ${this.#headHTML(t("Cast"), "remove-cast", cast.length)}
       <div class="th-grid cast">${cast.length ? cast.map(x => this.#remoteItemHTML(x, liveNpc(x.id))).join("") : `<p class="th-empty">${esc(t("Over.NoCast"))}</p>`}</div>`;
   }
 
@@ -277,8 +293,12 @@ export class TheaterPanel extends ApplicationV2 {
     const p = overlay.prefs();
     const scenes = overlay.theaterScenes(), current = this.#overScene();
     const sceneSel = scenes.length
-      ? `<select name="ov-scene">${scenes.map(s => `<option value="${s.id}" ${s === current ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select>`
+      ? `<select name="ov-scene">${scenes.map(s => `<option value="${s.id}" ${s === current ? "selected" : ""}>${esc(s.name)}${
+        s === canvas.scene ? ` ${esc(t("Over.ThisMap"))}` : ""}</option>`).join("")}</select>`
       : "";
+    const stray = this.#tilesOnMap().length;
+    const notice = stray ? `<div class="th-notice"><span>${esc(t("Over.StrayTiles", { count: stray }))}</span>
+      <button type="button" data-act="ov-hide-tiles"><i class="fa-solid fa-eye-slash"></i> ${o("StrayHide")}</button></div>` : "";
     const players = game.users.filter(u => !u.isGM)
       .sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name));
     const who = players.map(u => `<label class="th-ov-user ${u.active ? "" : "off"}" title="${esc(u.character?.name ?? "")}">
@@ -308,6 +328,7 @@ export class TheaterPanel extends ApplicationV2 {
       </div>
       <p class="th-ed-hint th-ov-hint">${o("Hint")}</p>
     </div>
+    ${notice}
     <div class="th-grids">${this.#gridsHTML()}</div>`;
   }
 
@@ -437,6 +458,22 @@ export class TheaterPanel extends ApplicationV2 {
         case "create-scene": await createTheaterScene(); break;
         case "ov-hide": await overlay.hide(); break;
         case "ov-clear": await overlay.clearCast(); break;
+        case "remove-places":
+        case "remove-cast": {
+          // Over a map: the scene listed in the panel; otherwise the Theater scene being viewed.
+          const target = this.remote ? this.#overScene() : canvas.scene;
+          if (!target) break;
+          if (this.#editingId) { this.#editingId = null; if (editor) editor.innerHTML = ""; }
+          await new Stage(target).removeAll(el.dataset.act === "remove-cast" ? "npc" : "place");
+          if (this.remote) this.render();
+          break;
+        }
+        case "ov-hide-tiles": {
+          const tiles = this.#tilesOnMap();
+          if (tiles.length) await this.stage.hide(tiles);
+          this.render();
+          break;
+        }
         case "ov-image": await this.#showAnyImage(); break;
         case "ov-preload": {
           const theater = this.#overScene();

@@ -56,6 +56,7 @@ The eye icon on an NPC toggles the veiled name without opening the settings.
 | Presence chip | Live count of connected players viewing this scene (green: all, amber: some, grey: nobody) |
 | Black | Hides places, cast and titles (sound keeps playing) |
 | Clear cast | Sends every NPC out |
+| Remove all (next to *Places* / *Cast*) | Removes every place (with its title card) or every NPC card from the scene, after asking; the image files stay on the server |
 | Silence | Stops the Theater's sound |
 | Clear cast on new place | When ticked, changing place also sends the cast out |
 | Fade | Fade and slide instead of instant cuts |

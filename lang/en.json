@@ -87,7 +87,11 @@
       "NothingToOptimize": "Every image on this scene is already light.",
       "OptimizeFailed": "{count} image(s) could not be optimized; they keep their original file. See the console (F12).",
       "NothingToRestore": "No optimized images on this scene.",
-      "Restored": "Restored the original images on {count} tile(s)."
+      "Restored": "Restored the original images on {count} tile(s).",
+      "RemovedPlaces": "Removed {count} place(s).",
+      "RemovedCast": "Removed {count} NPC card(s).",
+      "NoPlacesToRemove": "No places on this scene.",
+      "NoCastToRemove": "No NPCs on this scene."
     },
     "Settings": {
       "TitleHold": {
@@ -248,7 +252,10 @@
       "NoCast": "This Theater scene has no NPCs.",
       "NotFound": "Theater: nothing called “{name}” on any Theater scene.",
       "UnknownUsers": "Theater: no player called {names}.",
-      "LoweredForCombat": "Combat started: the picture over the map was taken down."
+      "LoweredForCombat": "Combat started: the picture over the map was taken down.",
+      "ThisMap": "(this map)",
+      "StrayTiles": "{count} Theater picture(s) are drawn on this map's own canvas, under its fog and lighting, and players may see them there. Hide them; from now on places go over the map.",
+      "StrayHide": "Hide them"
     },
     "OnAir": {
       "Title": "Over the map:",
@@ -270,6 +277,14 @@
       "OffHint": "Theater: take the picture over the map down.",
       "PlaceHint": "Theater: show this place over the map.",
       "CastHint": "Theater: bring this NPC in over the map, or send them out."
+    },
+    "RemoveAll": {
+      "Button": "Remove all",
+      "Hint": "Remove all of these from this scene (asks first). The image files stay on the server.",
+      "PlacesTitle": "Remove all places",
+      "PlacesBody": "Remove all {count} place(s) and their title cards from “{scene}”? The image files stay on the server, so you can add them again.",
+      "CastTitle": "Remove all NPCs",
+      "CastBody": "Remove all {count} NPC card(s) from “{scene}”? The portrait files stay on the server, so you can add them again."
     }
   }
 }
