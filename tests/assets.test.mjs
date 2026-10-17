@@ -4,7 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   fitWithin, hash36, optimizedName, needsOptimizing, worthReplacing, formatBytes, toURL, mediaKind,
-  isMediaPath, mediaInString, collectMedia, isPackageAsset, isHeavy, replacePath, deepReplace, pathUpdates
+  isMediaPath, mediaInString, collectMedia, isPackageAsset, isHeavy, replacePath, deepReplace, pathUpdates,
+  normPath, samePath, withoutOriginals, liteAudioPath
 } from "../scripts/util.mjs";
 import { MODULE_ID } from "../scripts/constants.mjs";
 
@@ -61,7 +62,7 @@ test("media kinds and paths", () => {
   assert.ok(isMediaPath("dnd/Music/Campfire ｜ 1 Hour.m4a"));
   assert.ok(!isMediaPath("data:image/png;base64,AAAA.png"));
   assert.ok(!isMediaPath("<p>see a.png</p>"));
-  assert.deepEqual(mediaInString(`<p><img src="dnd/A%20B.webp" alt=""> <a href='x/y.pdf'>y</a> <video poster="v/p.jpg"></video></p>`), ["dnd/A B.webp", "v/p.jpg"]);
+  assert.deepEqual(mediaInString(`<p><img src="dnd/A%20B.webp" alt=""> <a href='x/y.pdf'>y</a> <video poster="v/p.jpg"></video></p>`), ["dnd/A%20B.webp", "v/p.jpg"]);
 });
 
 test("collectMedia finds paths in nested data and HTML, once each", () => {
@@ -119,4 +120,45 @@ test("pathUpdates gives dotted keys, whole arrays, and skips the Theater's own o
     sources: ["o/b.webp", "c.ogg"],
     "text.content": `<p><img src="o/b.webp"></p>`
   });
+});
+
+
+// Foundry stores paths URL-encoded; scripts and pasted paths are plain. Both must match.
+const STORED = "dnd/Music/Ambience/Campfire%20%EF%BD%9C%20D%26D%E2%A7%B8TTRPG%20Ambience%20%EF%BD%9C%201%20Hour%20%5Bww8E0MR6AjQ%5D.m4a";
+const PLAIN = "dnd/Music/Ambience/Campfire ｜ D&D⧸TTRPG Ambience ｜ 1 Hour [ww8E0MR6AjQ].m4a";
+
+test("normPath and samePath see through Foundry's URL encoding", () => {
+  assert.equal(normPath(STORED), PLAIN);
+  assert.ok(samePath(STORED, PLAIN));
+  assert.ok(samePath("dnd/Ch01%20-%20Fruth%27s%20%2B%20x.png", "dnd/Ch01 - Fruth's + x.png"));
+  assert.ok(samePath("a/b.png?v=2", "a/b.png"));
+  assert.ok(!samePath("a/b.png", "a/c.png"));
+  assert.equal(normPath("a/100% real.png"), "a/100% real.png", "malformed escapes don't throw");
+});
+
+test("replacePath matches an encoded stored path from a plain one, in every spelling", () => {
+  assert.equal(replacePath(STORED, PLAIN, "x/c.lite.ogg"), "x/c.lite.ogg");
+  assert.equal(replacePath(PLAIN, STORED, "x/c.lite.ogg"), "x/c.lite.ogg");
+  assert.equal(replacePath(`<img src="dnd/Ch01%20-%20Fruth%27s.png">`, "dnd/Ch01 - Fruth's.png", "o/a b.webp"), `<img src="o/a%20b.webp">`);
+  assert.equal(replacePath("![a](dnd/Ch01%20-%20Fruth%27s%20(x).png)", "dnd/Ch01 - Fruth's (x).png", "o/b.webp"), "![a](o/b.webp)");
+  assert.equal(replacePath("dnd/other.png", PLAIN, "x"), "dnd/other.png");
+  const updates = pathUpdates({ path: STORED, sounds: [STORED] }, PLAIN, "x/c.lite.ogg");
+  assert.deepEqual(updates, { path: "x/c.lite.ogg", sounds: ["x/c.lite.ogg"] });
+});
+
+test("withoutOriginals drops the Theater's record of original files, nothing else", () => {
+  const scene = { background: { src: "bg.png" }, tiles: [
+    { texture: { src: "o/a.webp" }, flags: { [MODULE_ID]: { kind: "place", src: "a.png", orig: [["o/a.webp", "a.png"]], title: "x" }, other: { y: 1 } } }
+  ] };
+  const out = withoutOriginals(scene);
+  assert.deepEqual([...collectMedia(out)].sort(), ["bg.png", "o/a.webp"]);
+  assert.equal(out.tiles[0].flags[MODULE_ID].kind, "place");
+  assert.equal(out.tiles[0].flags.other.y, 1);
+  assert.equal(scene.tiles[0].flags[MODULE_ID].src, "a.png", "input untouched");
+});
+
+test("liteAudioPath names the copy made by lighten-audio.sh", () => {
+  assert.equal(liteAudioPath("dnd/Music/A B.m4a"), "dnd/Music/A B.lite.ogg");
+  assert.equal(liteAudioPath(STORED), STORED.replace(/\.m4a$/, ".lite.ogg"));
+  assert.equal(liteAudioPath("a.b/c.mp3?x=1"), "a.b/c.lite.ogg?x=1");
 });

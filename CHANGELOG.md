@@ -3,6 +3,16 @@
 All notable changes to this module. Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 The release workflow uses the section matching the tag as the GitHub release notes, so keep the `## [x.y.z]` headings exact.
 
+## [1.2.0]
+
+### Added
+- **Optimize all heavy images** (Assets → Files): every heavy image gets a WebP copy that is used everywhere at once: every scene (Theater or not), actor, token, journal and setting.
+- **Use the .lite.ogg copies** (Assets → Files): every heavy sound with a `<name>.lite.ogg` next to it on the server (made by the `lighten-audio.sh` script) is switched to the light copy everywhere; the shortened hour-long tracks are set to repeat.
+
+### Fixed
+- **Replacing a file did nothing when the path had spaces or symbols.** Foundry stores paths URL-encoded (`Campfire%20%EF%BD%9C%20D%26D…`), while scripts and pasted paths are plain (`Campfire ｜ D&D…`); the two never matched, so *⇄*, *Optimize* and the `repoint` API changed nothing for such files. Paths are now compared decoded, in plain values, HTML and Markdown.
+- The asset audit no longer counts the Theater's record of a place's original file as a use, so an optimized PNG no longer looks "still used". Files show with readable names instead of `%20`.
+
 ## [1.1.0]
 
 ### Added

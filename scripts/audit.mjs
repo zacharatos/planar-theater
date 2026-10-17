@@ -4,11 +4,11 @@
 //              in one click; any file can be repointed to another one everywhere at once.
 //   World data what each player receives on joining: size per document type, the biggest documents
 //              and folders, and moving unused actors and items out to a compendium.
-import { MODULE_ID } from "./constants.mjs";
+import { MODULE_ID, HEAVY_AUDIO_BYTES } from "./constants.mjs";
 import { t, info, warn } from "./i18n.mjs";
 import {
   escapeHTML as esc, collectMedia, mediaKind, isPackageAsset, isHeavy, needsOptimizing,
-  formatBytes, pathUpdates, deepReplace
+  formatBytes, pathUpdates, deepReplace, normPath, samePath, withoutOriginals, liteAudioPath
 } from "./util.mjs";
 import { fileSize, optimizeImage } from "./optimize.mjs";
 
@@ -41,19 +41,24 @@ function worldSettings() {
 
 /* ---------- Files ------------------------------------------------------------ */
 
-/** Every media path in the world, with what uses it. */
+/**
+ * Every media path in the world, with what uses it. Keyed by the decoded path, so the same file
+ * stored as "A%20B.png" in one place and "A B.png" in another is one row. The Theater's record of
+ * original files (a place's `src`, the `orig` pairs) is not a use: players never load it.
+ */
 function scanFiles() {
   const files = new Map();
   const add = (paths, label) => {
     for (const path of paths) {
       const kind = mediaKind(path);
       if (!kind) continue;
-      const f = files.get(path) ?? files.set(path, { path, kind, uses: new Set(), bytes: undefined }).get(path);
+      const key = normPath(path);
+      const f = files.get(key) ?? files.set(key, { path, kind, uses: new Set(), bytes: undefined }).get(key);
       f.uses.add(label);
     }
   };
   for (const type of FILE_TYPES) {
-    for (const doc of game.collections.get(type) ?? []) add(collectMedia(doc.toObject()), `${type}: ${doc.name}`);
+    for (const doc of game.collections.get(type) ?? []) add(collectMedia(withoutOriginals(doc.toObject())), `${type}: ${doc.name}`);
   }
   for (const s of worldSettings()) add(collectMedia(s.value), `${t("Audit.Setting")}: ${s.key}`);
   return files;
@@ -80,7 +85,7 @@ export async function repointEverywhere(from, to) {
   let changed = 0;
   for (const type of FILE_TYPES) {
     for (const doc of game.collections.get(type) ?? []) {
-      if (!collectMedia(doc.toObject()).has(from)) continue;
+      if (![...collectMedia(doc.toObject())].some(p => samePath(p, from))) continue;
       changed += await repointDoc(doc, from, to);
     }
   }
@@ -291,12 +296,12 @@ export class AssetAudit extends ApplicationV2 {
     const opt = (v, key) => `<option value="${v}" ${f.kind === v ? "selected" : ""}>${esc(t(`Audit.Kind.${key}`))}</option>`;
     const rows = list.map(x => {
       const isHeavyFile = isHeavy(x.path, x.bytes);
-      const name = x.path.split("/").pop();
+      const shown = normPath(x.path), name = shown.split("/").pop();
       const uses = [...x.uses];
       const canOptimize = x.kind === "image" && needsOptimizing(x.path, x.bytes);
       return `<tr class="${isHeavyFile ? "heavy" : ""}">
         <td><i class="fa-solid ${KIND_ICON[x.kind]}"></i></td>
-        <td class="th-audit-name" title="${esc(x.path)}">${esc(name)}<small>${esc(x.path.slice(0, -name.length))}</small></td>
+        <td class="th-audit-name" title="${esc(shown)}">${esc(name)}<small>${esc(shown.slice(0, -name.length))}</small></td>
         <td class="th-audit-size">${x.bytes === undefined ? `<i class="fa-solid fa-spinner fa-spin"></i>` : esc(formatBytes(x.bytes ?? NaN))}</td>
         <td class="th-audit-uses" title="${esc(uses.slice(0, 20).join("\n"))}${uses.length > 20 ? "\n…" : ""}">${uses.length}</td>
         <td class="th-audit-acts">
@@ -309,6 +314,10 @@ export class AssetAudit extends ApplicationV2 {
         <label><input type="checkbox" name="heavy" ${f.heavy ? "checked" : ""}> ${esc(t("Audit.HeavyOnly"))}</label>
         <label><input type="checkbox" name="packages" ${f.packages ? "checked" : ""}> ${esc(t("Audit.Packages"))}</label>
         <button type="button" data-audit="rescan"><i class="fa-solid fa-rotate"></i> ${esc(t("Audit.Rescan"))}</button>
+      </div>
+      <div class="th-audit-bar">
+        <button type="button" data-audit="optimize-all" title="${esc(t("Audit.OptimizeAllHint"))}"><i class="fa-solid fa-feather"></i> ${esc(t("Audit.OptimizeAll"))}</button>
+        <button type="button" data-audit="lite-audio" title="${esc(t("Audit.LiteAudioHint"))}"><i class="fa-solid fa-music"></i> ${esc(t("Audit.LiteAudio"))}</button>
       </div>
       <p class="th-audit-sum">${esc(t("Audit.FilesSummary", { count: list.length, total: formatBytes(total), heavy }))}${this.#sizing ? ` <i class="fa-solid fa-spinner fa-spin"></i>` : ""}</p>
       <p class="th-ed-hint th-audit-hint">${esc(t("Audit.FilesHint"))}</p>
@@ -374,6 +383,8 @@ export class AssetAudit extends ApplicationV2 {
         case "rescan": this.#files = null; this.render(); break;
         case "remeasure": this.#world = null; this.#selected.clear(); this.render(); break;
         case "move-picked": await this.#movePicked(); break;
+        case "optimize-all": await this.#optimizeAll(); break;
+        case "lite-audio": await this.#useLiteAudio(); break;
         case "chat-export": game.messages.export(); break;
         case "chat-flush": await game.messages.flush(); this.#world = null; this.render(); break;
       }
@@ -392,6 +403,44 @@ export class AssetAudit extends ApplicationV2 {
     if (!r.to) return info(r.skipped === "noGain" ? "Audit.NoGain" : "Audit.CantOptimize");
     const changed = await repointEverywhere(path, r.to);
     info("Audit.Optimized", { before: formatBytes(r.before), after: formatBytes(r.after), count: changed });
+    this.#rescanSoon();
+  }
+
+  /** Every heavy image in the list: a WebP copy, used everywhere the original was. */
+  async #optimizeAll() {
+    const todo = [...(this.#files?.values() ?? [])].filter(f => f.kind === "image" && !isPackageAsset(f.path) && needsOptimizing(f.path, f.bytes));
+    if (!todo.length) return info("Audit.NothingHeavy");
+    info("Audit.OptimizeAllStart", { count: todo.length });
+    let done = 0, before = 0, after = 0, docs = 0, failed = 0;
+    for (const f of todo) {
+      try {
+        const r = await optimizeImage(f.path);
+        if (!r.to) continue;
+        docs += await repointEverywhere(f.path, r.to);
+        done++; before += r.before ?? 0; after += r.after;
+      } catch (err) { failed++; console.warn(`${MODULE_ID} | could not optimize`, f.path, err); }
+    }
+    info("Audit.OptimizeAllDone", { count: done, before: formatBytes(before), after: formatBytes(after), docs });
+    if (failed) warn("Notify.OptimizeFailed", { count: failed });
+    this.#rescanSoon();
+  }
+
+  /** Heavy audio with a "<name>.lite.ogg" next to it on the server: use the light copy everywhere. */
+  async #useLiteAudio() {
+    const heavy = [...(this.#files?.values() ?? [])].filter(f => f.kind === "audio" && isHeavy(f.path, f.bytes) && !/\.lite\.ogg$/i.test(normPath(f.path)));
+    let swapped = 0, missing = 0, docs = 0;
+    const loops = new Set();
+    for (const f of heavy) {
+      const lite = liteAudioPath(f.path);
+      if (!await fileSize(lite)) { missing++; continue; }
+      docs += await repointEverywhere(f.path, lite);
+      swapped++;
+      if (f.bytes > HEAVY_AUDIO_BYTES) loops.add(normPath(lite)); // the long tracks became 5-minute loops
+    }
+    for (const pl of game.playlists) {
+      for (const s of pl.sounds) if (loops.has(normPath(s.path)) && !s.repeat) await s.update({ repeat: true });
+    }
+    info("Audit.LiteAudioDone", { count: swapped, docs, missing });
     this.#rescanSoon();
   }
 

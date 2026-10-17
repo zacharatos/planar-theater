@@ -58,6 +58,9 @@ Lighter images and the asset audit
 - **Assets → Files**: the scene PNGs, the Soundboard pad files and the 1-hour music files are listed with sizes, biggest first; *Heavy only* keeps the PNGs, `.wav`/`.flac` and the big `.m4a`. Hover the "Used" number: the scenes, playlists or settings that use the file.
 - **Optimize** on a PNG portrait used by an actor and its token: both now point to the WebP copy.
 - **⇄** on the 1-hour `.m4a`, pick a short `.ogg`: confirm; the playlist sound (and any soundscape that used it) now plays the `.ogg`.
+- Paths with spaces and symbols (`Campfire ｜ D&D⧸TTRPG … [id].m4a`, `Fruth's fingers.png`): ⇄ and Optimize change them (Foundry stores them URL-encoded; matching is on the decoded path).
+- **Use the .lite.ogg copies** after running `lighten-audio.sh`: the hour-long tracks disappear from *Heavy only*, the playlists play the `.lite.ogg` files (with repeat on), and a player's network tab shows the small files after a reload.
+- **Optimize all heavy images**: every heavy PNG is replaced in every scene; *Heavy only* is (nearly) empty afterwards; `worlds/<world>/theater-optimized/` holds the copies.
 - **Assets → World data**: sizes per type add up to the total; *Clear chat log* asks first. Tick two unused Plutonium items and **Move**: they appear in the *Planar Archive — Items* compendium and are gone from the sidebar. A player's character, an actor with a token on a scene, and an actor linked from a journal show why they stay and have no checkbox.
 
 - New scene creates a **black** (not grey) 1920×1080 gridless scene and opens it. The button is in the pinned toolbar, not at the bottom.

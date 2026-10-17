@@ -193,9 +193,22 @@ export function isMediaPath(value) {
   return mediaKind(value) !== null;
 }
 
-const ATTR = /\b(?:src|href|poster)\s*=\s*(["'])(.*?)\1/gi;
+const ATTR = /\b(src|href|poster)\s*=\s*(["'])(.*?)\2/gi;
 const unentity = s => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-const safeDecode = s => { try { return decodeURI(s); } catch { return s; } };
+
+/**
+ * One spelling for a file path, however it was stored: Foundry keeps paths URL-encoded
+ * ("Campfire%20%EF%BD%9C%20D%26D…"), a script or a pasted path has them plain ("Campfire ｜ D&D…").
+ * Fully decoded, without a ?query. Use it to compare paths, never to fetch.
+ */
+export function normPath(path) {
+  let p = String(path ?? "").split("?")[0];
+  try { p = decodeURIComponent(p); } catch { /* malformed escapes: compare as written */ }
+  return p;
+}
+
+/** Same file? Compares the decoded forms. */
+export const samePath = (a, b) => normPath(a) === normPath(b);
 
 /** Media paths in one string: the string itself, or src/href attributes inside HTML. */
 export function mediaInString(value) {
@@ -204,7 +217,7 @@ export function mediaInString(value) {
   if (!value.includes("=")) return [];
   const out = [];
   for (const m of value.matchAll(ATTR)) {
-    const p = safeDecode(unentity(m[2]));
+    const p = unentity(m[3]);
     if (isMediaPath(p)) out.push(p);
   }
   return out;
@@ -230,14 +243,46 @@ export function isHeavy(path, bytes) {
   return false;
 }
 
-/** Replace a path inside one string, both as written and URL-encoded (inside HTML). */
+/**
+ * Replace a file path inside one string, whatever its encoding: a string that is the path,
+ * src/href attributes in HTML, and the path written out in other text (Markdown).
+ */
 export function replacePath(text, from, to) {
-  if (typeof text !== "string" || !from || !text.includes(from) && !text.includes(encodeURI(from))) return text;
-  let out = text.split(from).join(to);
-  const encFrom = encodeURI(from);
-  if (encFrom !== from) out = out.split(encFrom).join(encodeURI(to));
+  if (typeof text !== "string" || !from) return text;
+  if (isMediaPath(text)) return samePath(text, from) ? to : text;
+  const key = normPath(from);
+  let out = text.includes("=")
+    ? text.replace(ATTR, (m, attr, q, value) => (normPath(unentity(value)) === key ? `${attr}=${q}${toURL(to)}${q}` : m))
+    : text;
+  // Markdown and plain text: the spellings the path is likely written in.
+  const component = key.split("/").map(encodeURIComponent).join("/");
+  const spellings = new Set([from, key, encodeURI(key), component, component.replace(/'/g, "%27"),
+    component.replace(/[!'()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)]);
+  for (const s of spellings) {
+    if (s.length > 4 && out.includes(s)) out = out.split(s).join(s === key ? to : toURL(to));
+  }
   return out;
 }
+
+/**
+ * A copy of document data without the Theater's record of original files
+ * (flags.planar-theater.src and .orig on tiles), so they don't count as uses.
+ */
+export function withoutOriginals(value) {
+  if (Array.isArray(value)) return value.map(withoutOriginals);
+  if (!value || typeof value !== "object") return value;
+  const out = {};
+  for (const [k, v] of Object.entries(value)) out[k] = withoutOriginals(v);
+  const theater = out.flags?.[MODULE_ID];
+  if (theater) { const { src, orig, ...rest } = theater; out.flags = { ...out.flags, [MODULE_ID]: rest }; }
+  return out;
+}
+
+/** "<folder>/<name>.lite.ogg": the copy lighten-audio.sh makes next to a heavy audio file. */
+export const liteAudioPath = path => {
+  const [p, query] = String(path).split("?");
+  return `${p.replace(/\.[^./]+$/, "")}.lite.ogg${query ? `?${query}` : ""}`;
+};
 
 /** Deep copy of a value with the path replaced; `changed` says whether anything was. */
 export function deepReplace(value, from, to) {

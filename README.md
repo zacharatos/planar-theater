@@ -71,7 +71,7 @@ Every player downloads every image of a scene when it is drawn, hidden places in
 
 ### Asset audit (Assets button)
 
-- **Files**: every image, sound and video used by the world's scenes, actors, items, journals, playlists, macros and module settings (e.g. Soundboard pads), with its size on the server, biggest first. *Heavy only* shows what slows players down. **Optimize** makes a WebP copy of an image and uses it everywhere it appears; **⇄** replaces any file with another one everywhere at once (e.g. a 60 MB music file with a short OGG loop).
+- **Files**: every image, sound and video used by the world's scenes, actors, items, journals, playlists, macros and module settings (e.g. Soundboard pads), with its size on the server, biggest first. *Heavy only* shows what slows players down. **Optimize** makes a WebP copy of an image and uses it everywhere it appears; **⇄** replaces any file with another one everywhere at once (e.g. a 60 MB music file with a short OGG loop). **Optimize all heavy images** does every heavy image in one go; **Use the .lite.ogg copies** switches every heavy sound that has a `<name>.lite.ogg` next to it (see `lighten-audio.sh` in the campaign vault) to that copy.
 - **World data**: what each player downloads on joining, by document type; the chat log (export and clear); the biggest documents and folders. Actors and items nobody uses at the table can move to a *Planar Archive* world compendium. Anything on a scene, owned by a player, in a combat, or linked from a journal, macro or module stays.
 - Compendium contents aren't scanned (players only download them when opened).
 

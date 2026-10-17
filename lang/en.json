@@ -191,7 +191,15 @@
         "OnScene": "Has a token on a scene",
         "Combat": "In a combat",
         "Linked": "Linked from a journal, macro or module"
-      }
+      },
+      "OptimizeAll": "Optimize all heavy images",
+      "OptimizeAllHint": "Give every heavy image a lighter WebP copy and use it everywhere: every scene, actor, journal and setting. The originals stay.",
+      "OptimizeAllStart": "Optimizing {count} image(s). This can take a minute…",
+      "OptimizeAllDone": "Optimized {count} image(s): {before} → {after}. Updated {docs} document(s).",
+      "NothingHeavy": "No heavy images to optimize.",
+      "LiteAudio": "Use the .lite.ogg copies",
+      "LiteAudioHint": "For every heavy sound that has a “<name>.lite.ogg” next to it on the server (made by the lighten-audio script), use the light copy everywhere.",
+      "LiteAudioDone": "Switched {count} sound(s) to their .lite.ogg copy in {docs} document(s). {missing} heavy sound(s) have no copy yet. Sounds already playing switch the next time they start."
     }
   }
 }
