@@ -3,6 +3,13 @@
 All notable changes to this module. Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 The release workflow uses the section matching the tag as the GitHub release notes, so keep the `## [x.y.z]` headings exact.
 
+## [1.0.1]
+
+### Fixed
+- **Image preload works again on every client.** In v14, `load` is an instance method of the singleton `TextureLoader.loader`, not a static method of the class. The preload called it on the class, so it threw `textureLoader().load is not a function` and no image was preloaded, on the GM's client or any player's ("28 file(s) failed to load", "Some files failed to load for: …"). Preload now uses the singleton.
+- Preload no longer evicts textures the canvas is using (`expireCache: false`).
+- A single image that fails to load is now reported by name instead of being counted as loaded: `load()` doesn't reject on one bad file, so each image is checked in the loader's cache afterwards.
+
 ## [0.2.0]
 
 ### Fixed

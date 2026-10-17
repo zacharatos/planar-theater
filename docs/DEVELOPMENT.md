@@ -57,7 +57,7 @@ Reload the browser tab (F5) after each change; the module has no hot reload.
 - Veil an NPC: players see `?`; reveal restores the name instantly; rename regenerates the card.
 - Close the folder picker without choosing: the panel stays usable.
 - Remove a place that has a title card: both tiles disappear.
-- Preload with a player connected (a second browser logged in as a player): a message says "Preloaded on: <name>". With nobody connected it says so. Close the player's tab mid-way: that player is reported as not answering.
+- Preload with a player connected (a second browser logged in as a player): a message says "Preloaded on: <name>". No "file(s) failed to load" warning appears, and the player's console has no `texture preload failed`. Rename one place image on disk so it can't load, then Preload: only that file is reported. With nobody connected it says so. Close the player's tab mid-way: that player is reported as not answering.
 - Show to players with a player on another scene: the message names that player; once they switch, the presence chip turns green. Check that `viewedScene` is kept up to date.
 - Clear cast button and the "Clear cast on new place" checkbox: NPCs slide out; the checkbox survives a reload.
 - Log in as a player: no Theater button, no panel.

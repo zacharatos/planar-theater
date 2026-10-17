@@ -81,3 +81,30 @@ test("tile animations: sent with the scene id, ignored from a non-GM or another 
   await assert.doesNotReject(onMessage({ op: "animate", from: "gm", scene: "s1", entries: "junk", ms: "x" }));
   assert.equal(emitted.length, 1, "nothing is sent back");
 });
+
+test("images load through the TextureLoader singleton, and files missing from its cache count as failed", async () => {
+  const { loadAssets } = await import("../scripts/socket.mjs");
+  const calls = [];
+  const cache = new Set();
+  // The class has no static load(): calling it on the class is the v14 bug this guards against.
+  class TextureLoader {
+    async load(sources, options) { calls.push({ sources, options }); for (const s of sources) if (!s.includes("broken")) cache.add(s); }
+    getCache(src) { return cache.has(src) ? {} : null; }
+  }
+  TextureLoader.loader = new TextureLoader();
+  globalThis.foundry.canvas = { TextureLoader };
+  try {
+    const result = await loadAssets({ images: ["a.webp", "broken.webp"], sounds: [] });
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].sources, ["a.webp", "broken.webp"]);
+    assert.equal(calls[0].options.expireCache, false, "a preload must not evict the textures on screen");
+    assert.deepEqual(result.failed, ["broken.webp"]);
+    assert.equal(result.images, 2);
+  } finally { delete globalThis.foundry.canvas; }
+});
+
+test("without a texture loader every image is reported as failed, nothing throws", async () => {
+  const { loadAssets } = await import("../scripts/socket.mjs");
+  const result = await loadAssets({ images: ["a.webp"], sounds: [] });
+  assert.deepEqual(result.failed, ["a.webp"]);
+});

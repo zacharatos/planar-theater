@@ -6,7 +6,8 @@ import { summarizeAcks } from "./util.mjs";
 import { animateTiles } from "./animate.mjs";
 
 const EVENT = `module.${MODULE_ID}`;
-const textureLoader = () => foundry.canvas?.TextureLoader ?? globalThis.TextureLoader;
+// `load` is an instance method of the singleton `TextureLoader.loader`, not a static method of the class.
+const textureLoader = () => (foundry.canvas?.TextureLoader ?? globalThis.TextureLoader)?.loader ?? null;
 const audioHelper = () => foundry.audio?.AudioHelper ?? globalThis.AudioHelper;
 
 /** Pending broadcasts, by request id. */
@@ -16,8 +17,14 @@ const pending = new Map();
 export async function loadAssets({ images = [], sounds = [] }) {
   const failed = [];
   if (images.length) {
-    try { await textureLoader().load(images, { displayProgress: false }); }
-    catch (err) { console.warn(`${MODULE_ID} | texture preload failed`, err); failed.push(...images); }
+    const loader = textureLoader();
+    try {
+      if (typeof loader?.load !== "function") throw new Error("TextureLoader.loader.load is not available");
+      // expireCache: false, so preloading never evicts textures the canvas is using right now.
+      await loader.load(images, { displayProgress: false, expireCache: false });
+      // load() does not reject when single files fail; it just leaves them out of the cache.
+      if (typeof loader.getCache === "function") failed.push(...images.filter(src => !loader.getCache(src)));
+    } catch (err) { console.warn(`${MODULE_ID} | texture preload failed`, err); failed.push(...images); }
   }
   for (const src of sounds) {
     try { await audioHelper().preloadSound(src); }
