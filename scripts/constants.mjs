@@ -49,3 +49,15 @@ export const OPTIMIZE = { maxSide: 2560, quality: 0.85, heavyBytes: 1_000_000, p
 /** Asset audit: audio and video above these sizes are flagged as heavy. */
 export const HEAVY_AUDIO_BYTES = 8 * 1024 * 1024;
 export const HEAVY_VIDEO_BYTES = 20 * 1024 * 1024;
+
+/**
+ * Over the map: a Theater place (or NPC cards) shown as a layer over whatever scene the players are on.
+ * Durations in ms (window mode takes 72% of the free screen, set in theater.css);
+ * slowFps = map frame rate behind a full-screen place (client setting "Slow the map behind").
+ */
+export const OVERLAY = {
+  fadeMs: 600, irisMs: 900, glitchMs: 700, npcMs: 600, openMs: 350, closeMs: 600, peekMs: 150,
+  slowFps: 8
+};
+export const OVERLAY_MODES = ["full", "window"];
+export const OVERLAY_FX = ["fade", "iris", "glitch", "cut"];

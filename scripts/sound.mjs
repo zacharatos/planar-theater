@@ -5,6 +5,17 @@ import { warn } from "./i18n.mjs";
 const play = snd => (typeof snd.parent?.playSound === "function" ? snd.parent.playSound(snd) : snd.update({ playing: true }));
 const stop = snd => (typeof snd.parent?.stopSound === "function" ? snd.parent.stopSound(snd) : snd.update({ playing: false }));
 
+/** Play / stop a PlaylistSound for everyone, by uuid (used by the overlay over the map). */
+export async function playUuid(uuid) {
+  const snd = uuid ? await fromUuid(uuid) : null;
+  if (!snd) return warn("Notify.SoundMissing");
+  if (!snd.playing) await play(snd);
+}
+export async function stopUuid(uuid) {
+  const snd = uuid ? await fromUuid(uuid) : null;
+  if (snd?.playing) await stop(snd);
+}
+
 /** Cross-fade to a linked sound. A place without a sound leaves the current one playing. */
 export async function switchTo(scene, uuid) {
   if (!uuid) return;

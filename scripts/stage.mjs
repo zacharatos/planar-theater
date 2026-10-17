@@ -28,8 +28,12 @@ const realBounds = tile => {
 
 export class Stage {
   #titleRun = 0;
+  #scene = null;
 
-  get scene() { return canvas.scene; }
+  /** scene: a Theater scene to read (the panel over a map); by default the scene being viewed. */
+  constructor(scene = null) { this.#scene = scene; }
+
+  get scene() { return this.#scene ?? canvas.scene; }
   get rect() { return canvas.dimensions.sceneRect; }
   get source() { return this.scene.getFlag(MODULE_ID, "source") ?? "data"; }
 
@@ -327,9 +331,9 @@ export class Stage {
     return { images: [...images], sounds: [...sounds] };
   }
 
-  /** Preload on every connected client and report who confirmed. */
-  async preload() {
-    const assets = await this.#assets();
+  /** Preload on every connected client and report who confirmed. dom: for the picture over the map. */
+  async preload({ dom = false } = {}) {
+    const assets = { ...await this.#assets(), dom };
     info("Notify.PreloadStart", { images: assets.images.length, sounds: assets.sounds.length });
     const { local, recipients, ok, missing, failed } = await broadcastPreload(assets);
     if (local.failed.length) warn("Notify.PreloadLocalFailed", { count: local.failed.length });

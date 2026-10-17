@@ -27,20 +27,21 @@ class FakeElement extends EventTarget {
 }
 globalThis.foundry = {
   applications: { api: { ApplicationV2: FakeApp, DialogV2: class {} }, apps: { FilePicker: { implementation: class {} } } },
-  utils: { randomID: () => "abc123" }
+  utils: { randomID: () => "abc123", deepClone: v => structuredClone(v) }
 };
 const saved = [];
 globalThis.game = {
   user: { isGM: true, id: "gm" },
   users: [],
   playlists: { contents: [] },
+  scenes: [],
   settings: { get: () => false, set: async (mod, key, value) => saved.push([key, value]) },
   i18n: { localize: k => k, format: k => k }
 };
 // "Silence" waits on unsetFlag, so the test decides when that action ends.
 let finishSilence;
 globalThis.canvas = { scene: {
-  id: "s1", tiles: [],
+  id: "s1", tiles: [], flags: { "planar-theater": { theater: true } },
   getFlag: () => null,
   unsetFlag: () => new Promise(resolve => { finishSilence = resolve; })
 } };
@@ -109,4 +110,21 @@ test("shows a busy state while an action runs, also in a reopened window", async
     finishSilence?.();
     await panel.close();
   }
+});
+
+test("on a map (not a Theater scene) the panel switches to over-the-map mode", async () => {
+  const theaterScene = canvas.scene;
+  canvas.scene = { id: "map", name: "Mortuary", tiles: [], flags: {}, getFlag: () => null };
+  try {
+    const panel = new TheaterPanel();
+    assert.equal(panel.remote, true);
+    const html = await panel._renderHTML();
+    assert.match(html, /Over\.Badge/, "over-the-map toolbar");
+    assert.match(html, /name="ov-mode"/);
+    assert.match(html, /Over\.NoTheater/, "says there is no Theater scene yet");
+    assert.match(html, /data-act="create-scene"/, "offers New scene");
+  } finally {
+    canvas.scene = theaterScene;
+  }
+  assert.equal(new TheaterPanel().remote, false, "a Theater scene keeps the normal panel");
 });

@@ -11,32 +11,42 @@ globalThis.Hooks = {
 class FakeApp { static DEFAULT_OPTIONS = {}; }
 globalThis.foundry = {
   applications: { api: { ApplicationV2: FakeApp, DialogV2: class {} }, apps: { FilePicker: { implementation: class {} } } },
-  utils: { randomID: () => "abc123" }
+  utils: { randomID: () => "abc123", deepClone: v => structuredClone(v) }
 };
 const registered = { settings: [], keys: [], sockets: [] };
 globalThis.game = {
   user: { isGM: true },
   modules: new Map([["planar-theater", {}]]),
-  settings: { register: (mod, key) => registered.settings.push(`${mod}.${key}`) },
+  settings: { register: (mod, key) => registered.settings.push(`${mod}.${key}`), get: () => ({}) },
+  users: { contents: [], filter: () => [], [Symbol.iterator]: function* () {}, activeGM: null },
+  scenes: { filter: () => [] },
   keybindings: { register: (mod, key) => registered.keys.push(`${mod}.${key}`) },
   socket: { on: (event) => registered.sockets.push(event), emit() {} },
   i18n: { localize: k => k, format: k => k }
 };
 globalThis.canvas = { scene: null };
+globalThis.CONFIG = { TextEditor: { enrichers: [] } };
+globalThis.document = { body: { addEventListener() {} }, getElementById: () => null };
 
 await import("../scripts/main.mjs");
 
 test("registers settings and keybinding on init", () => {
   hooks.once.init();
-  assert.deepEqual(registered.settings.sort(), ["planar-theater.clearCastOnPlace", "planar-theater.fade", "planar-theater.optimizeOnAdd", "planar-theater.soundFade", "planar-theater.titleHold"]);
-  assert.deepEqual(registered.keys, ["planar-theater.open"]);
+  assert.deepEqual(registered.settings.sort(), [
+    "planar-theater.clearCastOnPlace", "planar-theater.duckSoundboard", "planar-theater.fade", "planar-theater.lowerOnCombat",
+    "planar-theater.optimizeOnAdd", "planar-theater.overlay", "planar-theater.overlayPrefs", "planar-theater.slowMapBehind",
+    "planar-theater.soundFade", "planar-theater.titleHold"
+  ]);
+  assert.deepEqual(registered.keys.sort(), ["planar-theater.lower", "planar-theater.open", "planar-theater.peek"]);
+  assert.equal(CONFIG.TextEditor.enrichers.length, 1, "@Place / @Cast enricher registered");
 });
 
 test("exposes an api on ready", () => {
   hooks.once.ready();
   const api = game.modules.get("planar-theater").api;
   assert.deepEqual(registered.sockets, ["module.planar-theater"], "socket listener registered");
-  for (const fn of ["open", "createScene", "paintBlack", "migrate", "audit", "optimizeScene", "optimizeImage", "repoint"]) assert.equal(typeof api[fn], "function", fn);
+  for (const fn of ["open", "createScene", "paintBlack", "migrate", "audit", "optimizeScene", "optimizeImage", "repoint",
+    "places", "cast", "showPlace", "showNpc", "showImage", "hidePlace", "hide", "clearCast", "setUsers", "overlay"]) assert.equal(typeof api[fn], "function", fn);
 });
 
 test("adds a scene-control tool for the GM only", () => {

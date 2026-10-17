@@ -8,6 +8,9 @@ import { cancelAnimation, cancelAllAnimations } from "./animate.mjs";
 import { AssetAudit, repointEverywhere } from "./audit.mjs";
 import { optimizeImage } from "./optimize.mjs";
 import { Stage } from "./stage.mjs";
+import * as overlay from "./overlay.mjs";
+import * as layer from "./layer.mjs";
+import { registerEnrichers, listenForClicks } from "./enrich.mjs";
 
 Hooks.once("init", () => {
   registerSettings();
@@ -17,6 +20,8 @@ Hooks.once("init", () => {
     restricted: true,
     onDown: () => { TheaterPanel.open(); return true; }
   });
+  overlay.registerOverlaySettings();
+  registerEnrichers();
 });
 
 Hooks.once("ready", () => {
@@ -35,8 +40,30 @@ Hooks.once("ready", () => {
     /** A lighter WebP copy of one image: {from, to, before, after} or {from, skipped}. */
     optimizeImage: (path, opts) => optimizeImage(path, opts),
     /** Replace a file path in every world document and world setting. Returns how many changed. */
-    repoint: (from, to) => repointEverywhere(from, to)
+    repoint: (from, to) => repointEverywhere(from, to),
+
+    // ---- over the map: a Theater place, NPC cards or any picture over whatever scene players are on ----
+    /** Places of every Theater scene ({scene} for one): [{id, scene, sceneName, label, title, src}]. */
+    places: opts => overlay.places(opts),
+    /** NPC cards of every Theater scene: [{id, scene, sceneName, label, side, veiled, src}]. */
+    cast: opts => overlay.cast(opts),
+    /** Show a place by tile, id or name. opts: {scene, users, mode: "full"|"window", transition: "fade"|"iris"|"glitch"|"cut", title, clearCast}. */
+    showPlace: (target, opts) => overlay.showPlace(target, opts),
+    /** Bring an NPC card in or out ({on: true|false}; unset toggles). */
+    showNpc: (target, opts) => overlay.showNpc(target, opts),
+    /** Show any image, with an optional title card text and playlist sound uuid. */
+    showImage: (src, opts) => overlay.showImage(src, opts),
+    /** Take everything down: everyone is back on the map. */
+    hidePlace: () => overlay.hide(),
+    hide: () => overlay.hide(),
+    clearCast: () => overlay.clearCast(),
+    /** Change who sees what is up (user or character names, or ids; none = everyone). */
+    setUsers: list => overlay.setUsers(list),
+    /** What is showing right now. */
+    overlay: () => overlay.state()
   };
+  overlay.initOverlay({ openPanel: () => TheaterPanel.open() });
+  listenForClicks();
 });
 
 // Scene controls: a button in the Tokens toolbar (v13/v14 shape).
@@ -53,11 +80,19 @@ Hooks.on("getSceneControlButtons", controls => {
   };
 });
 
-// Keep the open panel in step with the scene.
+// Keep the open panel in step with the scene (over a map, it lists another scene's tiles).
 for (const hook of ["createTile", "updateTile", "deleteTile"]) {
-  Hooks.on(hook, doc => { if (doc.parent === canvas.scene) TheaterPanel.instance?.refreshSoon(); });
+  Hooks.on(hook, doc => {
+    const panel = TheaterPanel.instance;
+    if (doc.parent === canvas.scene || panel?.remote) panel?.refreshSoon();
+  });
 }
-Hooks.on("canvasReady", () => { if (TheaterPanel.instance?.rendered) TheaterPanel.instance.render(); });
+Hooks.on("canvasReady", () => {
+  layer.onCanvasReady();
+  if (TheaterPanel.instance?.rendered) TheaterPanel.instance.render();
+});
+Hooks.on(`${MODULE_ID}.overlay`, () => TheaterPanel.instance?.refreshSoon());
+Hooks.on("collapseSidebar", () => setTimeout(() => layer.fitAroundSidebar(), 250));
 
 // A saved change to a tile wins over a fade still running in this browser.
 Hooks.on("updateTile", (doc, changed) => {

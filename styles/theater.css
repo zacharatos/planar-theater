@@ -73,3 +73,52 @@
 .th-audit .th-audit-acts button{width:auto;display:inline-flex;gap:4px;margin:0 0 0 4px;padding:0 6px;line-height:22px;font-size:12px}
 .th-audit tr.heavy .th-audit-size{color:#f0b34a;font-weight:600}
 .th-audit tr.kept{opacity:.65}
+/* Panel over a map */
+.planar-theater .th-ov-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:12px;font-size:12px;color:#e8a33d;border:1px solid rgba(232,163,61,.6);background:rgba(232,163,61,.12)}
+.planar-theater .th-ov-scene{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.planar-theater .th-ov-scene select,.planar-theater .th-live select{width:auto;flex:0 0 auto}
+.planar-theater .th-ov-who{gap:4px 10px}
+.planar-theater .th-ov-who .th-ov-label{opacity:.75}
+.planar-theater .th-ov-who label{margin:0;cursor:pointer}
+.planar-theater .th-ov-who label.off{opacity:.5}
+.planar-theater .th-ov-all{display:none;opacity:.7;font-style:italic}
+.planar-theater .th-ov-who:not(:has(input:checked)) .th-ov-all{display:inline}
+.planar-theater .th-bar.th-live .th-ov-hide{margin-left:auto}
+.planar-theater .th-ov-hint{margin:2px 0 0}
+
+/* The picture over the map (every client). Under Foundry's interface, over the canvas. */
+.pt-ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:auto;contain:strict;container-type:size;padding-right:var(--pt-side,0px)}
+.pt-ov-back{position:absolute;inset:0;background:#000;transition:opacity .15s ease}
+.pt-ov.window .pt-ov-back,.pt-ov.no-place .pt-ov-back{background:rgba(0,0,0,.6)}
+.pt-ov-stage{position:relative;aspect-ratio:var(--pt-ratio,1.7778);width:min(100cqw,calc(100cqh * var(--pt-ratio,1.7778)));transition:opacity .15s ease}
+.pt-ov.window .pt-ov-stage{width:min(72cqw,calc(72cqh * var(--pt-ratio,1.7778)));border:2px solid #c9a14e;border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.8),0 18px 60px rgba(0,0,0,.85);background:#000}
+.pt-ov.no-place .pt-ov-stage{border:0;box-shadow:none;background:none;overflow:visible}
+.pt-ov-places,.pt-ov-cast,.pt-ov-titles{position:absolute;inset:0}
+.pt-ov-place{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none}
+.pt-ov-npc{position:absolute;object-fit:contain;user-select:none}
+.pt-ov-title{position:absolute;left:0;bottom:0;width:100%;height:20%;object-fit:fill;user-select:none}
+/* Glitch: scanlines over the stage for the length of the transition. */
+.pt-ov-stage.glitching::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,255,220,.10) 0 2px,transparent 2px 5px);mix-blend-mode:screen;animation:pt-ov-flicker .09s steps(2) infinite}
+@keyframes pt-ov-flicker{50%{opacity:.25;transform:translateY(2px)}}
+/* Peek: see the map through the picture while the key (or the button) is held. */
+.pt-ov.peek .pt-ov-back,.pt-ov.peek .pt-ov-stage{opacity:.15}
+.pt-ov.peek{pointer-events:none}
+.pt-ov-peek{position:absolute;right:calc(var(--pt-side,0px) + 14px);bottom:14px;width:auto;margin:0;padding:4px 12px;border-radius:14px;font-size:13px;line-height:20px;color:#f2e5c4;background:rgba(0,0,0,.55);border:1px solid rgba(201,161,78,.55);opacity:.55;cursor:pointer;pointer-events:auto;transition:opacity .2s}
+.pt-ov-peek:hover,.pt-ov.peek .pt-ov-peek{opacity:1}
+/* GM: "on air" chip */
+.pt-onair{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;align-items:center;gap:8px;padding:4px 6px 4px 10px;border-radius:18px;font-size:12px;color:#f2e5c4;background:rgba(13,12,20,.92);border:1px solid rgba(232,163,61,.7);box-shadow:0 4px 14px rgba(0,0,0,.6);max-width:min(760px,90vw)}
+.pt-onair img{width:44px;height:26px;object-fit:cover;border-radius:3px;border:1px solid rgba(255,255,255,.2)}
+.pt-onair-dot{width:9px;height:9px;border-radius:50%;background:#e04a3a;box-shadow:0 0 6px #e04a3a;flex:0 0 auto}
+.pt-onair-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pt-onair-label small{opacity:.7;margin-left:6px}
+.pt-onair-seen{white-space:nowrap;padding:1px 7px;border-radius:10px;border:1px solid rgba(255,255,255,.2)}
+.pt-onair-seen.all{color:#8fd18f;border-color:rgba(143,209,143,.5)}
+.pt-onair-seen.some{color:#f0b34a;border-color:rgba(240,179,74,.6)}
+.pt-onair button{width:auto;flex:0 0 auto;margin:0;padding:0 8px;line-height:22px;height:24px;font-size:12px}
+.pt-onair button.on{color:#e8a33d;border-color:#e8a33d}
+.pt-onair .pt-onair-x{color:#fff;background:rgba(224,74,58,.35);border-color:rgba(224,74,58,.8)}
+/* Journal buttons */
+a.pt-show{display:inline-flex;align-items:center;gap:4px;padding:0 6px;border-radius:4px;border:1px solid rgba(201,161,78,.6);background:rgba(201,161,78,.12);white-space:nowrap}
+a.pt-show:hover{background:rgba(201,161,78,.25)}
+a.pt-show.busy{opacity:.6;cursor:progress}
+@media (prefers-reduced-motion:reduce){.pt-ov-stage.glitching::after{animation:none;display:none}}

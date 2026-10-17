@@ -3,6 +3,28 @@
 All notable changes to this module. Format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 The release workflow uses the section matching the tag as the GitHub release notes, so keep the `## [x.y.z]` headings exact.
 
+## [1.3.0]
+
+### Added
+- **Over the map.** Show any Theater place (with its title card and sound), NPC cards, or any picture from the server on the players' screens **over the map they are on**, without changing scene, then take it down with one click and everyone is back on the map. Open the Theater panel on a map: it lists the places and cast of a Theater scene you pick.
+  - **Who sees it**: every player, or only the players you tick. For chosen players the sound plays only in their browsers.
+  - **Show as** full screen, or a **window over the map** (a framed picture over the dimmed map).
+  - **Transitions**: Fade, **Iris** (opens from the centre, like a door), **Glitch** (a flicker with scanlines), Cut.
+  - NPC cards slide in and out over the place, one per side, or on their own over the dimmed map.
+  - **Hold V to see the map** (players): the picture turns see-through while the key or the on-screen button is held. The key can be changed in *Configure Controls*.
+  - **On-air chip** for the GM: what is up, who is seeing it (`3/4`, with names of anyone not seeing it yet), a preview of the players' view, and **Take down**. Optional keybinding to take it down.
+  - **Preload for the map**: players' browsers download the chosen Theater scene's pictures and sounds, with a confirmation per player.
+  - **Take it down when combat starts** (world setting, on by default): starting combat or rolling initiative brings everyone back to the map.
+  - **Turn the Soundboard down** (world setting, on by default): with Planar Soundboard, music and ambience dip (Narrate) while a place is up for everyone.
+  - **Slow the map behind** (client setting, off by default): the map behind a full-screen place is drawn at a few frames a second, to spare laptops.
+  - Survives reloads and late logins: what is up is shown at once.
+- **Journal buttons** for prep notes (GM only; players see plain text): `@Place[name]`, `@Place[name | to=Nanouk, Elaion | mode=window | fx=iris | scene=…]{label}`, `@Place[off]`, `@Cast[name]`. Names match without accents or case.
+- API: `places()`, `cast()`, `showPlace(target, opts)`, `showNpc(target, opts)`, `showImage(src, opts)`, `hide()` / `hidePlace()`, `clearCast()`, `setUsers(list)`, `overlay()`; hook `planar-theater.overlay`.
+
+### Performance
+- The picture over the map is plain HTML animated only with opacity, transform and clip-path (handled by the graphics card), with every image decoded before it appears. One small setting write per GM action; no tile or database updates while things move; nothing runs while nothing is shown.
+- *Preload for the map* only fills the browser cache (no GPU textures for pictures that are never drawn on the canvas).
+
 ## [1.2.0]
 
 ### Added

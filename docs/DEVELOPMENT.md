@@ -14,7 +14,13 @@ scripts/
   audit.mjs            the asset audit window: files (scan, sizes, optimize, repoint) and world data (sizes, move to compendium)
   sound.mjs            playlist sound switching, loop/fade setup, preload
   scene.mjs            "New scene" helper (black via Level on v14)
-  socket.mjs           GM <-> player preload requests and acknowledgements
+  socket.mjs           GM <-> player preload requests and acknowledgements; over-the-map acks
+  overlay.mjs          over the map, GM side: the "overlay" world setting, API (showPlace, showNpc, showImage, hide…),
+                       sound + Soundboard ducking, auto-lower on combat, settings and keybindings for it
+  layer.mjs            over the map, every client: draws the state as HTML over the canvas (transitions, cast,
+                       title, peek, local sound for chosen players, optional slow map)
+  onair.mjs            the GM's "on air" chip over the map
+  enrich.mjs           @Place[…] / @Cast[…] journal buttons
   migrate.mjs          import from the original macro
   settings.mjs  i18n.mjs  constants.mjs
   util.mjs             pure helpers (no Foundry globals), all unit-tested
@@ -49,6 +55,24 @@ ln -s /path/to/repo /path/to/FoundryData/Data/modules/planar-theater
 Reload the browser tab (F5) after each change; the module has no hot reload.
 
 ### Manual test checklist
+
+Over the map (1.3.0). Two browsers: the GM, and a player on a map scene (e.g. the Mortuary).
+- Open the panel on the map: it shows **Over the map**, a Theater scene picker, *Who sees it*, *Show as*, *Transition*. On the Theater scene itself the panel is unchanged.
+- **Preload for the map**: "Preloaded on: <player>"; the player's network tab shows the place images (no GPU textures needed).
+- Click a place (Fade, Full screen): the player sees it over the map, the title card, the linked sound; the token layer is not touched and nobody changes scene. The GM stays on the map and gets the red **on air** chip at the top with `1/1`.
+- Click another place: a cross-fade, no black frame. Try **Iris** (opens from the centre) and **Glitch** (flicker + scanlines), then **Cut**.
+- **Window over the map**: a framed picture over the dimmed map; the sidebar, chat and hotbar stay usable in both modes; the picture sits left of the sidebar and re-centres when the sidebar is collapsed.
+- Click an NPC with a place up: the card slides in on its side; a second NPC on the same side replaces it; click again to send it out. With nothing up, an NPC alone appears over the dimmed map. A veiled NPC shows `?`.
+- Player holds **V** (or the *Hold to see the map* button): the picture turns almost transparent and the map shows through; releasing brings it back.
+- **Who sees it**: tick one player, click the place again: only that player sees it; the other player is back on the map; the chip says "chosen players" and `1/1`. The sound plays only in the chosen player's browser.
+- **Take down** (chip ✕, panel button, or the *take down* keybinding if bound): everyone is back on the map; with Iris it closes as an iris.
+- Planar Soundboard running a soundscape on the map: when a place goes up for everyone the music/ambience dip (Narrate); when it comes down they return. **Check that the place's own linked sound is not dipped too**; if it is, untick *Turn the Soundboard down over the map*.
+- Start a combat (or roll initiative) with a place up: it comes down and the GM gets a message. With the setting off, it stays.
+- Player presses F5 with a place up: after the reload the picture is there at once (no title card). A player who logs in late sees it too, and the chip count goes up.
+- The chip's screen button: the GM sees what the players see (on the GM's screen only); click again to return to the map.
+- In a journal: `@Place[Jex]`, `@Place[Jex | mode=window | fx=iris]{Jex's door}`, `@Place[Jex | to=Nanouk]`, `@Cast[Jex]`, `@Place[off]`. The GM sees ▶ buttons that work; a player who can see the journal sees plain text.
+- Macro: `game.modules.get("planar-theater").api.showPlace("Jex", {transition: "glitch"})`, `.showImage("worlds/x/handout.webp", {title: "Ο Χάρτης | Σιγίλ"})`, `.hide()`.
+- *Slow the map behind a full-screen place* (client setting) on a laptop: GPU use drops while a full-screen place is up; the map runs normally again when peeking and after taking it down.
 
 Lighter images and the asset audit
 - Add places from a folder of 2–3 MB PNGs: a message says how many were optimized and the total before → after; the tiles show `worlds/<world>/theater-optimized/*.webp`; the panel thumbnails look the same. Add the same folder again: "every image is already loaded" (no duplicates).
@@ -89,6 +113,7 @@ Lighter images and the asset audit
 - **Scene background (v14)**: scenes have no `backgroundColor`; it is `level.background.color` on the scene's Level (`scene.mjs#paintBlack`).
 - **Preload (v14)**: `game.scenes.preload(id, {broadcast: true})` takes an options object, and we preload through our own socket so we can confirm per player (`socket.mjs`).
 - **Hidden tiles** are shown to the GM at half alpha, so "off" is `hidden: true` and `alpha: 0`.
+- **Over the map**: one world setting (`overlay`) is the whole state: `{seq, users, mode, transition, ratio, place: {id, scene, src, label, title}, cast: [{id, scene, src, side, box, label?}], sound: {uuid, path, volume}, globalSound, ducked}`. Only the GM writes it (one write per action, never per frame); `onChange` draws it on every client (`layer.mjs`) and fires the hook `planar-theater.overlay`. It holds what is displayed, not tile ids to look up, so players need no access to the Theater scene. World settings are readable by every client, so it never holds a veiled NPC's name, and a "chosen players only" picture is hidden from the others' screens, not from a curious console (use Planar Whispers for real secrets). Animations are Web Animations on opacity/transform/clip-path only; images are `decode()`d before they are shown.
 
 ## Versions
 

@@ -109,10 +109,25 @@
       "OptimizeOnAdd": {
         "Name": "Optimize images when adding",
         "Hint": "When you add places, heavy images (PNG, or over 1 MB) get a lighter WebP copy first. The originals are not changed."
+      },
+      "DuckSoundboard": {
+        "Name": "Turn the Soundboard down over the map",
+        "Hint": "While a place is shown over the map to everyone, Planar Soundboard narrates (music and ambience dip), so the place's own sound comes through. Needs Planar Soundboard."
+      },
+      "LowerOnCombat": {
+        "Name": "Take the picture down when combat starts",
+        "Hint": "When combat begins or initiative is rolled, whatever is shown over the map is taken down so everyone sees the map."
+      },
+      "SlowMap": {
+        "Name": "Slow the map behind a full-screen place",
+        "Hint": "While a place covers the whole screen, the map behind is drawn at a few frames a second. Saves the graphics card on laptops."
       }
     },
     "Keybinding": {
-      "Open": "Open the Theater panel"
+      "Open": "Open the Theater panel",
+      "Peek": "Over the map: hold to see the map",
+      "PeekHint": "While a picture is shown over the map, hold this key to see the map through it.",
+      "Lower": "Over the map: take the picture down (GM)"
     },
     "Presence": {
       "None": "No players connected",
@@ -200,6 +215,61 @@
       "LiteAudio": "Use the .lite.ogg copies",
       "LiteAudioHint": "For every heavy sound that has a “<name>.lite.ogg” next to it on the server (made by the lighten-audio script), use the light copy everywhere.",
       "LiteAudioDone": "Switched {count} sound(s) to their .lite.ogg copy in {docs} document(s). {missing} heavy sound(s) have no copy yet. Sounds already playing switch the next time they start."
+    },
+    "Over": {
+      "Title": "Theater — over the map ({scene})",
+      "Badge": "Over the map",
+      "Scene": "Theater scene",
+      "Preload": "Preload for the map",
+      "PreloadHint": "Every connected player's browser downloads this Theater scene's pictures and sounds now, so they appear at once over the map.",
+      "Image": "Any picture…",
+      "ImageHint": "Show any image from the server over the map, with an optional title card.",
+      "ImageTitle": "Show a picture over the map",
+      "ImageShow": "Show",
+      "Who": "Who sees it:",
+      "Everyone": "everyone (tick players to choose)",
+      "NoPlayers": "No player accounts yet.",
+      "ModeLabel": "Show as",
+      "FxLabel": "Transition",
+      "Mode": {
+        "full": "Full screen",
+        "window": "Window over the map"
+      },
+      "Fx": {
+        "fade": "Fade",
+        "iris": "Iris (opens from the centre)",
+        "glitch": "Glitch",
+        "cut": "Cut"
+      },
+      "Hide": "Take down",
+      "Hint": "You're on a map. Click a place to show it over the map, click an NPC to bring them in or out; players stay on this scene and come back to it when you take it down. A second click on the place that is up re-sends it with the choices above.",
+      "NoTheater": "There is no Theater scene in this world yet. Press “New scene”, add places and cast there, then come back to this map.",
+      "NoPlaces": "This Theater scene has no places.",
+      "NoCast": "This Theater scene has no NPCs.",
+      "NotFound": "Theater: nothing called “{name}” on any Theater scene.",
+      "UnknownUsers": "Theater: no player called {names}.",
+      "LoweredForCombat": "Combat started: the picture over the map was taken down."
+    },
+    "OnAir": {
+      "Title": "Over the map:",
+      "CastOnly": "{count} NPC card(s)",
+      "Everyone": "everyone",
+      "Some": "chosen players",
+      "Waiting": "Not showing yet for: {names}",
+      "Preview": "See it as the players do (your own screen only)",
+      "Panel": "Open the Theater panel",
+      "Hide": "Take down",
+      "HideHint": "Take it down: everyone is back on the map."
+    },
+    "Overlay": {
+      "Peek": "Hold {key} to see the map",
+      "PeekMouse": "Hold here to see the map"
+    },
+    "Enricher": {
+      "Off": "Back to the map",
+      "OffHint": "Theater: take the picture over the map down.",
+      "PlaceHint": "Theater: show this place over the map.",
+      "CastHint": "Theater: bring this NPC in over the map, or send them out."
     }
   }
 }

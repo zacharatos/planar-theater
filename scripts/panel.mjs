@@ -1,11 +1,14 @@
 import { MODULE_ID } from "./constants.mjs";
 import { t, warn } from "./i18n.mjs";
 import { setting, setSetting } from "./settings.mjs";
-import { metaOf, kindOf, nameOf, escapeHTML as esc, playersNotViewing } from "./util.mjs";
+import { metaOf, kindOf, nameOf, escapeHTML as esc, playersNotViewing, isTheaterScene, overlayIsOn } from "./util.mjs";
 import { Stage } from "./stage.mjs";
 import { migrateScene, pendingLegacyTiles } from "./migrate.mjs";
 import { createTheaterScene } from "./scene.mjs";
 import { AssetAudit } from "./audit.mjs";
+import * as overlay from "./overlay.mjs";
+import { pickFile } from "./files.mjs";
+import { OVERLAY_MODES, OVERLAY_FX } from "./constants.mjs";
 
 const { ApplicationV2 } = foundry.applications.api;
 
@@ -21,8 +24,8 @@ const soundOptions = selected => {
 
 /** A selector that finds the clicked control again after the panel re-draws it. */
 const controlSelector = el => {
-  for (const key of ["act", "id", "ed", "reveal", "edit"]) {
-    if (el.dataset[key]) return `[data-${key}="${el.dataset[key]}"]`;
+  for (const key of ["act", "id", "ed", "reveal", "edit", "ovPlace", "ovNpc"]) {
+    if (el.dataset[key]) return `[data-${key.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)}="${el.dataset[key]}"]`;
   }
   return null;
 };
@@ -64,11 +67,23 @@ export class TheaterPanel extends ApplicationV2 {
   #timer = null;
   #presenceTimer = null;
 
-  get title() { return t("Title", { scene: canvas.scene?.name ?? "" }); }
+  get title() {
+    return this.remote ? t("Over.Title", { scene: canvas.scene?.name ?? "" }) : t("Title", { scene: canvas.scene?.name ?? "" });
+  }
+
+  /** On a map (not a Theater scene) the panel shows places of a Theater scene to put over the map. */
+  get remote() { return !!canvas.scene && !isTheaterScene(canvas.scene); }
+
+  /** The Theater scene the panel lists over a map: the one picked last, or the first. */
+  #overScene() {
+    const scenes = overlay.theaterScenes();
+    const id = overlay.prefs().scene;
+    return scenes.find(s => s.id === id) ?? scenes[0] ?? null;
+  }
 
   async _prepareContext() { return {}; }
 
-  async _renderHTML() { return this.#panelHTML(); }
+  async _renderHTML() { return this.remote ? this.#remoteHTML() : this.#panelHTML(); }
 
   _replaceHTML(result, content) { content.innerHTML = result; }
 
@@ -91,9 +106,16 @@ export class TheaterPanel extends ApplicationV2 {
     clearInterval(this.#presenceTimer);
   }
 
-  /** Remember the two checkboxes between sessions. */
+  /** Remember the two checkboxes between sessions; over a map, the choices of scene, who, mode and transition. */
   #onChange(ev) {
     const box = ev.target;
+    const save = patch => overlay.setPrefs(patch).catch(err => console.warn(`${MODULE_ID} |`, err));
+    switch (box?.name) {
+      case "ov-scene": return save({ scene: box.value }).then(() => this.#refreshGrids());
+      case "ov-mode": return save({ mode: box.value });
+      case "ov-fx": return save({ transition: box.value });
+      case "ov-user": return save({ users: [...this.element.querySelectorAll("input[name=ov-user]:checked")].map(x => x.value) });
+    }
     const key = { "th-fade": "fade", "th-clear": "clearCastOnPlace" }[box?.name];
     if (key) setSetting(key, box.checked).catch(err => console.warn(`${MODULE_ID} |`, err));
   }
@@ -177,6 +199,7 @@ export class TheaterPanel extends ApplicationV2 {
   }
 
   #gridsHTML() {
+    if (this.remote) return this.#remoteGridsHTML();
     const stage = this.stage;
     const places = stage.tilesOf("place"), cast = stage.tilesOf("npc");
     return `<h3>${esc(t("Places"))}</h3>
@@ -219,6 +242,90 @@ export class TheaterPanel extends ApplicationV2 {
     </div>
     ${this.#noticeHTML()}
     <div class="th-grids">${this.#gridsHTML()}</div>`;
+  }
+
+  // ---------- over the map --------------------------------------------------
+
+  #remoteItemHTML(tile, live) {
+    const npc = kindOf(tile) === "npc", m = metaOf(tile);
+    const tags = npc
+      ? `${m.side === "left" ? "◀ " : "▶ "}${m.nameHidden ? `<i class="fa-solid fa-eye-slash"></i> ` : ""}`
+      : `${m.sound ? `<i class="fa-solid fa-music"></i> ` : ""}${m.title ? `<i class="fa-solid fa-heading"></i> ` : ""}`;
+    const data = npc ? `data-ov-npc="${tile.id}"` : `data-ov-place="${tile.id}"`;
+    return `<div class="th-item ${live ? "live" : ""}" ${data} role="button" tabindex="0" title="${esc(nameOf(tile))}">
+      <img src="${esc(tile.texture.src)}" alt="" loading="lazy">
+      <span><span class="th-tags">${tags}</span>${esc(nameOf(tile))}</span>
+    </div>`;
+  }
+
+  #remoteGridsHTML() {
+    const scene = this.#overScene();
+    if (!scene) return `<p class="th-empty">${esc(t("Over.NoTheater"))}</p>`;
+    const st = overlay.state(), on = overlayIsOn(st);
+    const stage = new Stage(scene);
+    const places = stage.tilesOf("place"), cast = stage.tilesOf("npc");
+    const livePlace = id => on && st.place?.id === id;
+    const liveNpc = id => on && (st.cast ?? []).some(c => c.id === id);
+    return `<h3>${esc(t("Places"))}</h3>
+      <div class="th-grid">${places.length ? places.map(x => this.#remoteItemHTML(x, livePlace(x.id))).join("") : `<p class="th-empty">${esc(t("Over.NoPlaces"))}</p>`}</div>
+      <h3>${esc(t("Cast"))}</h3>
+      <div class="th-grid cast">${cast.length ? cast.map(x => this.#remoteItemHTML(x, liveNpc(x.id))).join("") : `<p class="th-empty">${esc(t("Over.NoCast"))}</p>`}</div>`;
+  }
+
+  #remoteHTML() {
+    const o = key => esc(t(`Over.${key}`));
+    const p = overlay.prefs();
+    const scenes = overlay.theaterScenes(), current = this.#overScene();
+    const sceneSel = scenes.length
+      ? `<select name="ov-scene">${scenes.map(s => `<option value="${s.id}" ${s === current ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select>`
+      : "";
+    const players = game.users.filter(u => !u.isGM)
+      .sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name));
+    const who = players.map(u => `<label class="th-ov-user ${u.active ? "" : "off"}" title="${esc(u.character?.name ?? "")}">
+        <input type="checkbox" name="ov-user" value="${u.id}" ${p.users?.includes(u.id) ? "checked" : ""}> ${esc(u.name)}</label>`).join("");
+    const options = (name, list, value, prefix) => `<select name="${name}">${list.map(v =>
+      `<option value="${v}" ${v === value ? "selected" : ""}>${o(`${prefix}.${v}`)}</option>`).join("")}</select>`;
+    return `<div class="th-head">
+      <div class="th-bar">
+        <span class="th-ov-badge"><i class="fa-solid fa-layer-group"></i> ${o("Badge")}</span>
+        ${sceneSel ? `<label class="th-ov-scene">${o("Scene")} ${sceneSel}</label>` : ""}
+        <button type="button" data-act="ov-preload" title="${o("PreloadHint")}"><i class="fa-solid fa-download"></i> ${o("Preload")}</button>
+        <button type="button" data-act="ov-image" title="${o("ImageHint")}"><i class="fa-solid fa-image"></i> ${o("Image")}</button>
+        ${scenes.length ? "" : `<button type="button" data-act="create-scene"><i class="fa-solid fa-plus"></i> ${esc(t("Bar.NewScene"))}</button>`}
+        <span class="th-status" role="status"><i class="fa-solid fa-spinner fa-spin"></i> ${esc(t("Busy"))}</span>
+      </div>
+      <div class="th-bar th-ov-who">
+        <span class="th-ov-label">${o("Who")}</span>
+        <span class="th-ov-all">${o("Everyone")}</span>
+        ${who || `<span class="th-ov-none">${o("NoPlayers")}</span>`}
+      </div>
+      <div class="th-bar th-live">
+        <label>${o("ModeLabel")} ${options("ov-mode", OVERLAY_MODES, p.mode, "Mode")}</label>
+        <label>${o("FxLabel")} ${options("ov-fx", OVERLAY_FX, p.transition, "Fx")}</label>
+        <label><input type="checkbox" name="th-clear" ${setting("clearCastOnPlace") ? "checked" : ""}> ${esc(t("Bar.ClearCastOnPlace"))}</label>
+        <button type="button" data-act="ov-clear"><i class="fa-solid fa-user-slash"></i> ${esc(t("Bar.ClearCast"))}</button>
+        <button type="button" data-act="ov-hide" class="th-ov-hide"><i class="fa-solid fa-eye-slash"></i> ${o("Hide")}</button>
+      </div>
+      <p class="th-ed-hint th-ov-hint">${o("Hint")}</p>
+    </div>
+    <div class="th-grids">${this.#gridsHTML()}</div>`;
+  }
+
+  /** Any picture from the server, with an optional title card. */
+  async #showAnyImage() {
+    const src = await pickFile("image");
+    if (!src) return;
+    const { DialogV2 } = foundry.applications.api;
+    const title = await DialogV2.prompt({
+      window: { title: t("Over.ImageTitle"), icon: "fa-solid fa-image" },
+      content: `<div class="form-group"><label>${esc(t("Editor.TitleCard"))}</label>
+        <input type="text" name="title" placeholder="${esc(t("Editor.TitlePlaceholder"))}" autofocus></div>
+        <p class="hint">${esc(t("Editor.TitleHint"))}</p>`,
+      ok: { label: t("Over.ImageShow"), icon: "fa-solid fa-eye", callback: (ev, button) => button.form?.elements?.title?.value ?? "" },
+      rejectClose: false
+    }).catch(() => null);
+    if (title === null || title === undefined) return;
+    await overlay.showImage(src, { title: title.trim() || null });
   }
 
   #editorHTML(tile) {
@@ -273,7 +380,7 @@ export class TheaterPanel extends ApplicationV2 {
   // ---------- clicks ---------------------------------------------------------
 
   async #onClick(ev) {
-    const el = ev.target.closest("[data-reveal], [data-edit], [data-ed], [data-act], .th-item");
+    const el = ev.target.closest("[data-reveal], [data-edit], [data-ed], [data-act], [data-ov-place], [data-ov-npc], .th-item");
     if (!el || !this.element.contains(el)) return;
     ev.preventDefault(); ev.stopPropagation();
     if (this.#busy) return this.#nudge();
@@ -284,6 +391,13 @@ export class TheaterPanel extends ApplicationV2 {
     this.#working = controlSelector(el);
     this.#busyTimer = setTimeout(() => this.#showBusy(), BUSY_DELAY_MS);
     try {
+      if (el.dataset.ovPlace || el.dataset.ovNpc) {
+        const tile = this.#overScene()?.tiles.get(el.dataset.ovPlace ?? el.dataset.ovNpc);
+        if (!tile) return;
+        if (el.dataset.ovNpc) await overlay.showNpc(tile);
+        else await overlay.showPlace(tile, { clearCast: this.element.querySelector("input[name=th-clear]")?.checked });
+        return;
+      }
       if (el.dataset.reveal) {
         const tile = scene.tiles.get(el.dataset.reveal);
         if (tile) await stage.setNameHidden(tile, !metaOf(tile).nameHidden);
@@ -321,6 +435,14 @@ export class TheaterPanel extends ApplicationV2 {
         case "optimize": await this.#optimize(); break;
         case "audit": AssetAudit.open(); break;
         case "create-scene": await createTheaterScene(); break;
+        case "ov-hide": await overlay.hide(); break;
+        case "ov-clear": await overlay.clearCast(); break;
+        case "ov-image": await this.#showAnyImage(); break;
+        case "ov-preload": {
+          const theater = this.#overScene();
+          if (theater) await new Stage(theater).preload({ dom: true });
+          break;
+        }
         case "import-legacy": {
           const n = await migrateScene(scene);
           ui.notifications.info(t(n ? "Notify.Imported" : "Notify.NothingToImport", { count: n }));

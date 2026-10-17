@@ -13,10 +13,31 @@ const audioHelper = () => foundry.audio?.AudioHelper ?? globalThis.AudioHelper;
 /** Pending broadcasts, by request id. */
 const pending = new Map();
 
-/** Load images and sounds on THIS client. Returns what failed. */
-export async function loadAssets({ images = [], sounds = [] }) {
+/** Over-the-map acknowledgements ("this player is seeing it"), handled on the GM side. */
+const ackListeners = new Set();
+export const onOverlayAck = fn => ackListeners.add(fn);
+/** A player tells the GMs it is showing overlay state `seq`. */
+export const emitOverlayAck = seq => game.socket.emit(EVENT, { op: "overlay-ack", user: game.user.id, seq });
+
+/**
+ * Images for the picture over the map are plain HTML images, so they only need the browser's
+ * HTTP cache, not GPU textures: fetch and decode them, keep nothing in memory.
+ */
+function loadImagesForPage(images) {
   const failed = [];
-  if (images.length) {
+  return Promise.all(images.map(src => new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => Promise.resolve(img.decode?.()).catch(() => {}).finally(resolve);
+    img.onerror = () => { failed.push(src); resolve(); };
+    img.src = src;
+  }))).then(() => failed);
+}
+
+/** Load images and sounds on THIS client. Returns what failed. dom: for the picture over the map. */
+export async function loadAssets({ images = [], sounds = [], dom = false }) {
+  const failed = [];
+  if (images.length && dom) failed.push(...await loadImagesForPage(images));
+  else if (images.length) {
     const loader = textureLoader();
     try {
       if (typeof loader?.load !== "function") throw new Error("TextureLoader.loader.load is not available");
@@ -34,7 +55,7 @@ export async function loadAssets({ images = [], sounds = [] }) {
 }
 
 /** Ask all other connected clients to preload, load here too, and collect replies. */
-export async function broadcastPreload({ images, sounds }) {
+export async function broadcastPreload({ images, sounds, dom = false }) {
   const id = foundry.utils.randomID();
   const recipients = game.users.filter(u => u.active && u.id !== game.user.id).map(u => ({ id: u.id, name: u.name }));
   const acks = new Map();
@@ -44,8 +65,8 @@ export async function broadcastPreload({ images, sounds }) {
     timer = setTimeout(resolve, PRELOAD_TIMEOUT_MS);
     if (!recipients.length) resolve();
   });
-  game.socket.emit(EVENT, { op: "preload", id, from: game.user.id, images, sounds });
-  const local = await loadAssets({ images, sounds });
+  game.socket.emit(EVENT, { op: "preload", id, from: game.user.id, images, sounds, dom });
+  const local = await loadAssets({ images, sounds, dom });
   await everyoneReplied;
   clearTimeout(timer);
   pending.delete(id);
@@ -62,11 +83,14 @@ export async function onMessage(msg) {
   if (!msg || typeof msg !== "object") return;
   if (msg.op === "preload") {
     if (!game.users.get(msg.from)?.isGM) return; // only a GM may ask clients to load things
-    const result = await loadAssets({ images: msg.images ?? [], sounds: msg.sounds ?? [] });
+    const result = await loadAssets({ images: msg.images ?? [], sounds: msg.sounds ?? [], dom: !!msg.dom });
     game.socket.emit(EVENT, { op: "preload-ack", id: msg.id, to: msg.from, user: game.user.id, ...result });
   } else if (msg.op === "animate") {
     if (!game.users.get(msg.from)?.isGM) return;
     animateTiles(msg.scene, Array.isArray(msg.entries) ? msg.entries : [], Number(msg.ms) || 0);
+  } else if (msg.op === "overlay-ack") {
+    if (!game.user.isGM || !game.users.get(msg.user)) return;
+    for (const fn of ackListeners) fn(msg.user, Number(msg.seq));
   } else if (msg.op === "preload-ack" && msg.to === game.user.id) {
     const request = pending.get(msg.id);
     if (!request) return;

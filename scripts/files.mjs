@@ -31,6 +31,19 @@ export function pickFolder() {
   });
 }
 
+/** Ask the GM for one file (an image by default). Resolves its path, or null if closed without choosing. */
+export function pickFile(type = "image") {
+  return new Promise(resolve => {
+    const picker = new (FP())({ type, callback: path => resolve(path) });
+    const close = picker.close.bind(picker);
+    picker.close = async (...args) => {
+      setTimeout(() => resolve(null), 150);
+      return close(...args);
+    };
+    picker.render(true);
+  });
+}
+
 export async function listImages(source, path) {
   const result = await FP().browse(source, path);
   return naturalSort((result.files ?? []).filter(isImage));

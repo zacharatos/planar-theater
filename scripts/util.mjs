@@ -1,5 +1,7 @@
 // Pure helpers: no Foundry globals, so they can be unit-tested with plain Node.
-import { IMG, BAND, CARD, NPC, TITLE_HEIGHT, MODULE_ID, OPTIMIZE, HEAVY_AUDIO_BYTES, HEAVY_VIDEO_BYTES } from "./constants.mjs";
+import {
+  IMG, BAND, CARD, NPC, TITLE_HEIGHT, MODULE_ID, OPTIMIZE, HEAVY_AUDIO_BYTES, HEAVY_VIDEO_BYTES, OVERLAY_MODES, OVERLAY_FX
+} from "./constants.mjs";
 
 export const isImage = path => IMG.test(String(path));
 
@@ -320,3 +322,100 @@ export function pathUpdates(source, from, to, { skip = [] } = {}) {
   walk(source, "");
   return updates;
 }
+
+/* ---------- over the map ------------------------------------------------------ */
+
+/** Is something showing over the map? A place, or at least one NPC card. */
+export const overlayIsOn = state => !!(state && (state.place || state.cast?.length));
+
+/** Should `user` see the overlay? No list (or an empty one) means every player; a GM only in preview. */
+export function overlayTargets(state, user, { preview = false } = {}) {
+  if (!overlayIsOn(state) || !user) return false;
+  if (user.isGM) return !!preview;
+  return !Array.isArray(state.users) || !state.users.length || state.users.includes(user.id);
+}
+
+const castKey = c => `${c.id}|${c.src}`;
+
+/**
+ * What changed between two overlay states as one browser sees them (null = nothing shown).
+ * place: a different picture; castIn/castOut: cards to bring in / send out (a card whose picture
+ * changed, e.g. a revealed name, goes out and comes back).
+ */
+export function overlayChanges(prev, next) {
+  const p = overlayIsOn(prev) ? prev : null, n = overlayIsOn(next) ? next : null;
+  const pk = new Set((p?.cast ?? []).map(castKey)), nk = new Set((n?.cast ?? []).map(castKey));
+  return {
+    open: !p && !!n,
+    close: !!p && !n,
+    place: (p?.place?.id ?? null) !== (n?.place?.id ?? null) || (p?.place?.src ?? null) !== (n?.place?.src ?? null),
+    castIn: (n?.cast ?? []).filter(c => !pk.has(castKey(c))),
+    castOut: (p?.cast ?? []).filter(c => !nk.has(castKey(c))),
+    mode: (p?.mode ?? null) !== (n?.mode ?? null)
+  };
+}
+
+/** Lower case, no accents (Greek tonos too), single spaces: for matching names typed in notes. */
+export const foldName = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, " ").trim();
+
+/**
+ * Find an item by id or by name: exact name first, then "starts with", then "contains".
+ * `names(item)` lists the names an item answers to.
+ */
+export function findByName(items, query, names = item => [item.label]) {
+  const raw = String(query ?? "").trim();
+  if (!raw) return null;
+  const byId = items.find(item => item.id === raw);
+  if (byId) return byId;
+  const q = foldName(raw);
+  for (const test of [a => a === q, a => a.startsWith(q), a => a.includes(q)]) {
+    const hit = items.find(item => names(item).some(n => n && test(foldName(n))));
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/**
+ * "@Place[Jex's workshop | to=Nanouk, Elaion | mode=window | fx=iris | scene=Mortuary]" options.
+ * Returns { name, to?, mode?, transition?, scene? }; unknown or invalid options are ignored.
+ */
+export function parseShowArgs(text) {
+  const [name = "", ...opts] = String(text ?? "").split("|").map(s => s.trim());
+  const out = { name };
+  for (const opt of opts) {
+    const m = opt.match(/^(\w+)\s*=\s*(.*)$/);
+    if (!m) continue;
+    const key = m[1].toLowerCase(), value = m[2].trim();
+    if (key === "to") out.to = value.split(",").map(s => s.trim()).filter(Boolean);
+    else if (key === "mode" && OVERLAY_MODES.includes(value.toLowerCase())) out.mode = value.toLowerCase();
+    else if ((key === "fx" || key === "transition") && OVERLAY_FX.includes(value.toLowerCase())) out.transition = value.toLowerCase();
+    else if (key === "scene" && value) out.scene = value;
+  }
+  return out;
+}
+
+/**
+ * Turn names or ids into user ids. A player answers to their user name or their character's name.
+ * @param {{id: string, name: string, isGM?: boolean, character?: {name: string}}[]} users
+ * @returns {{ids: string[], unknown: string[]}}
+ */
+export function resolveUsers(users, wanted) {
+  const ids = [], unknown = [];
+  for (const w of wanted ?? []) {
+    const hit = findByName(users.filter(u => !u.isGM).map(u => ({ id: u.id, names: [u.name, u.character?.name] })),
+      w, item => item.names);
+    if (hit) { if (!ids.includes(hit.id)) ids.push(hit.id); } else unknown.push(String(w));
+  }
+  return { ids, unknown };
+}
+
+/** An NPC card's box as fractions of its Theater scene (the same spot the Theater scene uses). */
+export function npcBoxFrac(sceneWidth, sceneHeight, width, height, side) {
+  const b = npcPosition({ x: 0, y: 0, width: sceneWidth, height: sceneHeight }, width, height, side);
+  return { left: b.left / sceneWidth, top: b.top / sceneHeight, width: b.width / sceneWidth, height: b.height / sceneHeight };
+}
+
+/** A Theater scene: made by "New scene", or holding Theater tiles. */
+export const isTheaterScene = scene =>
+  !!(scene?.flags?.[MODULE_ID]?.theater || scene?.tiles?.some?.(tile => !!metaOf(tile) && kindOf(tile) !== "title"));
